@@ -1,0 +1,2 @@
+# Las capturas crecen unos 4 MB por día con una cada 10 minutos: no se versionan.
+/status/*.csv

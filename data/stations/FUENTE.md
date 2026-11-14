@@ -18,3 +18,9 @@ https://buenosaires.publicbikesystem.net/customer/gbfs/v2/pt/station_information
 - `station_id` es el mismo identificador que traen los recorridos (sin el sufijo `BAEcobici`). Verificado contra los viajes de 2026: 387 de 407 estaciones coinciden en identificador y ubicación, y cubren el 97,4% de los viajes.
 - Es una foto del día de la descarga. Las estaciones dadas de baja antes no figuran, y la capacidad puede haber cambiado en el tiempo. Para 2019 hay otra foto en `../conicet/estaciones_2019.xlsx`.
 - El mismo índice ofrece `station_status` (bicicletas y anclajes disponibles en este momento). No tiene historial: para usarlo hay que capturarlo periódicamente.
+
+## Capturas del estado
+
+`src/capture_station_status.py` consulta `station_status` y agrega una fila por estación a `status/status_AAAA-MM-DD.csv` (hora de Buenos Aires). Con `--interval 600` queda capturando cada 10 minutos.
+
+Las capturas no se versionan (ver `.gitignore`): cada una pesa unos 27 KB, es decir unos 4 MB por día.
