@@ -6,15 +6,13 @@
 
 **Licencia:** CC BY 4.0 (hay que citar a Open-Meteo).
 
-**Descargado:** 2026-11-14, con esta consulta:
-
-https://archive-api.open-meteo.com/v1/archive?latitude=-34.6&longitude=-58.44&start_date=2019-01-01&end_date=2026-06-30&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,rain,wind_speed_10m,wind_gusts_10m,cloud_cover,weather_code&timezone=America%2FArgentina%2FBuenos_Aires&format=csv
+**Descargado:** 2026-11-14 con `src/download_weather.py`, que arma la consulta y reemplaza el archivo. Para cambiar el período o las variables, se edita ese script.
 
 ## Archivos
 
 | Archivo | Contenido |
 |---|---|
-| `open_meteo_horario_2019_2026.csv` | 65.712 horas, del 2019-01-01 al 2026-06-30, sin valores vacíos: temperatura, sensación térmica, humedad, precipitación, lluvia, viento, ráfagas, nubosidad y código de estado del tiempo (WMO). |
+| `open_meteo_horario_2019_2026.csv` | 67.920 horas, del 2019-01-01 al 2026-09-30, sin valores vacíos: temperatura, sensación térmica, humedad, precipitación, lluvia, viento, ráfagas, nubosidad y código de estado del tiempo (WMO). |
 
 ## A tener en cuenta
 
