@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ecobici: plan de redistribución</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #ffffff; --line: #e4e3df;
+    --text: #0b0b0b; --text-2: #52514e; --text-3: #7c7b76;
+    --blue: #2a78d6; --orange: #eb6834; --aqua: #1baf7a; --tint: #eef4fc;
+    --purple: #8e44ad; --gray: #b0afa9; --unknown: #d9d8d3;
+    --up: #1a7f4b; --down: #b8412a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--surface); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .app { display: grid; grid-template-columns: 310px minmax(0, 1fr); min-height: 100vh; }
+
+  /* ---- Panel lateral */
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 28px 22px 40px; }
+  aside .inner { position: sticky; top: 24px; }
+  aside h2 { font-size: 20px; margin: 0 0 18px; }
+  .field { margin: 0 0 20px; }
+  .field > label, .field > .label { display: block; font-size: 14px; color: var(--text-2); margin-bottom: 6px; font-weight: 550; }
+  .field .hint { color: var(--text-3); font-size: 13px; margin: 6px 0 0; }
+  input[type=date], select, input[type=search] {
+    width: 100%; font: inherit; padding: 8px 10px; border: 1px solid #c9c8c3; border-radius: 8px;
+    background: #fff; color: var(--text); }
+  input[type=range] { width: 100%; accent-color: var(--blue); margin: 4px 0 0; }
+  .range-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .range-head output { font-variant-numeric: tabular-nums; font-weight: 650; color: var(--text); white-space: nowrap; }
+  .range-scale { display: flex; justify-content: space-between; color: var(--text-3); font-size: 12px; }
+  .check, .field > label.check { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer;
+                                 color: var(--text); font-weight: 400; margin: 0; }
+  .check input { width: 17px; height: 17px; accent-color: var(--blue); margin: 0; }
+  .radios { display: grid; gap: 6px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pair label { font-size: 13px; color: var(--text-3); display: block; margin-bottom: 3px; }
+  .subgroup { border-left: 3px solid var(--line); padding-left: 12px; margin-left: 2px; }
+  [hidden] { display: none !important; }
+
+  /* ---- Contenido */
+  main { padding: 34px 32px 70px; max-width: 1240px; width: 100%; }
+  .eyebrow { color: var(--text-3); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 8px; }
+  h1 { font-size: 34px; line-height: 1.15; margin: 0 0 10px; letter-spacing: -.01em; }
+  h3 { font-size: 20px; margin: 30px 0 8px; }
+  .lead { font-size: 19px; color: var(--text-2); margin: 0 0 6px; }
+  .lead b { color: var(--text); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 22px 0; }
+  .tiles.three { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+  .tile .label { color: var(--text-2); font-size: 14.5px; }
+  .tile .value { font-size: 32px; font-weight: 650; line-height: 1.15; letter-spacing: -.01em; margin-top: 4px;
+                 overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .tile .value.text { font-size: 24px; }
+  .tile .note { color: var(--text-3); font-size: 13.5px; margin-top: 4px; }
+  .tile .note.up { color: var(--up); }
+  .tile .note.down { color: var(--down); }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); margin: 8px 0 18px; }
+  .tabs button { font: inherit; font-size: 15.5px; background: none; border: 0; border-bottom: 3px solid transparent;
+                 padding: 10px 14px 9px; color: var(--text-2); cursor: pointer; margin-bottom: -1px; }
+  .tabs button:hover { color: var(--text); }
+  .tabs button[aria-selected=true] { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+  .tabs button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  .figure { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 12px 6px; margin: 14px 0; }
+  .plot { width: 100%; }
+  .caption { color: var(--text-3); font-size: 14px; margin: 6px 4px 10px; }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin: 4px 0 10px; }
+  .notice { background: var(--tint); border-left: 4px solid var(--blue); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+  .error { background: #fdf0ec; border-left-color: var(--down); }
+
+  .table-wrap { overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .table-wrap.tall { max-height: 520px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 13.5px; background: #f7f7f5; position: sticky; top: 0; z-index: 1;
+       border-bottom: 2px solid var(--line); vertical-align: bottom; }
+  th.num { white-space: normal; }
+  th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit;
+              white-space: normal; }
+  th button:hover { color: var(--text); }
+  th .arrow { color: var(--blue); margin-left: 3px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tbody tr:hover td { background: #fafaf8; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: 0; }
+  .status-cell { white-space: nowrap; }
+  .count { color: var(--text-3); font-size: 14px; }
+  button.primary { font: inherit; font-size: 15px; background: var(--blue); color: #fff; border: 0; border-radius: 8px;
+                   padding: 9px 16px; cursor: pointer; }
+  button.primary:hover { background: #1f66bd; }
+  .station-pick label { display: block; font-size: 14px; color: var(--text-2); margin-bottom: 6px; font-weight: 550; }
+  .station-pick { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 10px; max-width: 760px; }
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--text-3); font-size: 13.5px; }
+  code { background: #f1f0ec; padding: 1px 5px; border-radius: 4px; font-size: .92em; }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 22px 16px 6px; }
+    aside .inner { position: static; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 22px; }
+    aside h2 { grid-column: 1 / -1; }
+    main { padding: 24px 16px 60px; }
+    h1 { font-size: 27px; }
+    .station-pick { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside aria-label="Día a planificar">
+  <div class="inner">
+    <h2>Día a planificar</h2>
+
+    <div class="field">
+      <label for="in-date">Fecha</label>
+      <input type="date" id="in-date">
+      <p class="hint" id="date-hint"></p>
+    </div>
+
+    <div class="field">
+      <label class="check"><input type="checkbox" id="in-holiday"> Es feriado</label>
+      <p class="hint" id="holiday-name" hidden></p>
+    </div>
+
+    <div class="field">
+      <div class="label" id="source-label">Clima</div>
+      <div class="radios" role="radiogroup" aria-labelledby="source-label">
+        <label class="check"><input type="radio" name="source" value="scenario" checked> Escenario</label>
+        <label class="check" id="observed-option"><input type="radio" name="source" value="observed"> Clima registrado ese día</label>
+      </div>
+      <p class="hint">Para un día pasado se puede usar el clima que hubo.</p>
+    </div>
+
+    <div id="scenario-controls" class="subgroup">
+      <div class="field">
+        <label for="in-rain">Lluvia</label>
+        <select id="in-rain"></select>
+      </div>
+      <div class="field" id="rain-hours">
+        <div class="label">Horas con lluvia</div>
+        <div class="pair">
+          <div><label for="in-start">Desde las</label><select id="in-start"></select></div>
+          <div><label for="in-end">Hasta las</label><select id="in-end"></select></div>
+        </div>
+      </div>
+      <div class="field">
+        <div class="range-head"><label for="in-shift">Temperatura respecto de lo normal del mes</label>
+          <output id="out-shift" for="in-shift"></output></div>
+        <input type="range" id="in-shift" min="-10" max="10" step="1" value="0">
+        <div class="range-scale"><span>−10 °C</span><span>+10 °C</span></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="range-head"><label for="in-margin">Bicicletas de resguardo por estación</label>
+        <output id="out-margin" for="in-margin"></output></div>
+      <input type="range" id="in-margin" min="0" max="5" step="1">
+      <div class="range-scale"><span>0</span><span>5</span></div>
+      <p class="hint">El modelo se equivoca en unas 2 bicicletas en el balance de una mañana.</p>
+    </div>
+  </div>
+</aside>
+
+<main>
+  <p class="eyebrow">Ecobici · Plan de redistribución</p>
+  <h1>¿Cómo dejar cada estación para mañana?</h1>
+  <p class="lead" id="summary"></p>
+  <div class="notice error" id="failure" hidden></div>
+
+  <div class="tiles" id="indicators">
+    <div class="tile"><div class="label">Viajes previstos</div><div class="value" id="out-trips">–</div><div class="note" id="out-trips-change"></div></div>
+    <div class="tile"><div class="label">Estaciones a dejar cargadas</div><div class="value" id="out-loaded">–</div></div>
+    <div class="tile"><div class="label">Estaciones a dejar con lugar</div><div class="value" id="out-room">–</div></div>
+    <div class="tile"><div class="label">Necesitan visita durante el día</div><div class="value" id="out-visit">–</div></div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Vistas">
+    <button role="tab" id="tab-map" aria-controls="panel-map" aria-selected="true">Mapa</button>
+    <button role="tab" id="tab-plan" aria-controls="panel-plan" aria-selected="false" tabindex="-1">Plan de redistribución</button>
+    <button role="tab" id="tab-station" aria-controls="panel-station" aria-selected="false" tabindex="-1">Detalle de una estación</button>
+    <button role="tab" id="tab-check" aria-controls="panel-check" aria-selected="false" tabindex="-1">¿Qué tan bien predice?</button>
+  </div>
+
+  <section role="tabpanel" id="panel-map" aria-labelledby="tab-map">
+    <label class="check"><input type="checkbox" id="in-lanes" checked> Mostrar ciclovías</label>
+    <div class="figure"><div class="plot" id="map-plot"></div></div>
+    <p class="caption">El tamaño de cada punto es la cantidad de viajes previstos. Para acercar, usá los botones o hacé
+      clic en el mapa y girá la rueda; se mueve arrastrando y con doble clic vuelve al encuadre inicial. {{attribution}}.</p>
+  </section>
+
+  <section role="tabpanel" id="panel-plan" aria-labelledby="tab-plan" hidden>
+    <div class="toolbar">
+      <label class="check"><input type="checkbox" id="in-only-action" checked> Solo las que necesitan preparación</label>
+      <span class="count" id="plan-count"></span>
+    </div>
+    <div class="table-wrap tall"><table id="plan-table"><thead></thead><tbody></tbody></table></div>
+    <p class="caption">Tocá el título de una columna para ordenar por ella.</p>
+    <button class="primary" id="download">Descargar el plan (CSV)</button>
+    <h3>Por zona</h3>
+    <div class="table-wrap"><table id="zone-table"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+  <section role="tabpanel" id="panel-station" aria-labelledby="tab-station" hidden>
+    <div class="field station-pick">
+      <div><label for="in-search">Buscar</label><input type="search" id="in-search" placeholder="Nombre o número"></div>
+      <div><label for="in-station">Estación</label><select id="in-station"></select></div>
+    </div>
+    <div class="tiles three">
+      <div class="tile"><div class="label">Tipo de estación</div><div class="value text" id="out-type">–</div></div>
+      <div class="tile"><div class="label">Capacidad</div><div class="value text" id="out-capacity">–</div></div>
+      <div class="tile"><div class="label">Dejar con</div><div class="value text" id="out-target">–</div><div class="note" id="out-status"></div></div>
+    </div>
+    <div class="figure"><div class="plot" id="station-plot"></div></div>
+    <p class="caption">La línea negra muestra cuántas bicicletas habría si la estación arranca con el stock recomendado
+      y nadie la repone durante el día.</p>
+  </section>
+
+  <section role="tabpanel" id="panel-check" aria-labelledby="tab-check" hidden>
+    <div class="notice" id="check-empty" hidden>Para este día no hay viajes publicados, así que no hay con qué comparar.
+      Elegí un día anterior para ver cómo le fue al modelo: hay viajes hasta el {{trips_end}}.</div>
+    <div id="check-content">
+      <div class="tiles three">
+        <div class="tile"><div class="label">Viajes reales</div><div class="value" id="out-real">–</div></div>
+        <div class="tile"><div class="label">Viajes previstos por el modelo</div><div class="value" id="out-model">–</div><div class="note" id="out-model-change"></div></div>
+        <div class="tile"><div class="label">Lo habitual para ese tipo de día</div><div class="value" id="out-usual">–</div><div class="note" id="out-usual-change"></div></div>
+      </div>
+      <div class="figure"><div class="plot" id="check-plot"></div></div>
+      <p class="caption">Para una comparación justa, elegí «Clima registrado ese día» en el panel lateral.</p>
+    </div>
+  </section>
+
+  <footer>
+    Generado el {{generated}} con <code>python src/build_app.py</code>. La predicción se calcula en el navegador con los
+    mismos modelos de gradient boosting de <code>src/train_demand.py</code>; no hace falta conexión. Viajes publicados hasta
+    el {{trips_end}}. {{attribution}}. También está la versión en Streamlit: <code>streamlit run src/app.py</code>.
+  </footer>
+</main>
+</div>
+
+<script type="application/json" id="app-data">{{data_json}}</script>
+<script>{{plotly_js}}</script>
+<script>{{map_zoom_js}}</script>
+
+<script id="engine">
+// Motor de predicción: la misma lógica que src/forecast.py, sin tocar la página. src/verify_app.py
+// lo ejecuta con Node y compara el resultado con el de Python.
+function createEngine(data) {
+  "use strict";
+  const HOURS = 24;
+  const START_HOUR = data.start_hour;
+  const STATUS = {
+    loaded: "Arrancar cargada", room: "Arrancar con lugar", visit: "Necesita visita durante el día",
+    half: "Arrancar a media carga", unknown: "Sin capacidad conocida",
+  };
+  const WEATHER = ["precipitation_mm", "apparent_temperature_c", "wind_speed_kmh", "cloud_cover_pct"];
+
+  function decode(text, Type) {
+    const binary = atob(text);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    return new Type(bytes.buffer);
+  }
+
+  // ---- Fechas: siempre en UTC, para que la zona horaria de la computadora no corra el día.
+  function parseDay(text) {
+    const [year, month, day] = text.split("-").map(Number);
+    const time = Date.UTC(year, month - 1, day);
+    // Lunes = 0, como day_of_week de pandas.
+    const weekday = (new Date(time).getUTCDay() + 6) % 7;
+    return {text, year, month, day, time, weekday};
+  }
+  const daysBetween = (from, to) => Math.round((to.time - from.time) / 86400000);
+
+  // Redondeo al par más cercano en los empates, como numpy.round.
+  function roundHalfEven(value) {
+    const floor = Math.floor(value);
+    const rest = value - floor;
+    if (rest > 0.5) return floor + 1;
+    if (rest < 0.5) return floor;
+    return floor % 2 === 0 ? floor : floor + 1;
+  }
+
+  // ---- Modelos: árboles de HistGradientBoostingRegressor con pérdida de Poisson.
+  function loadModel(model) {
+    return {
+      baseline: model.baseline,
+      offsets: decode(model.offsets, Uint32Array),
+      feature: decode(model.feature, Int8Array),
+      missingLeft: decode(model.missing_left, Uint8Array),
+      right: decode(model.right, Uint8Array),
+      number: decode(model.number, Float64Array),
+    };
+  }
+  const models = {departures: loadModel(data.models.departures), arrivals: loadModel(data.models.arrivals)};
+
+  // Recorre los árboles igual que _predictor.pyx: los faltantes siguen missing_go_to_left y el resto
+  // va a la izquierda si es menor o igual al umbral. Las entradas ya están en precisión simple (como
+  // la matriz float32 de predict_day) y la suma se hace en doble, empezando por el valor inicial.
+  // Los nodos están en preorden: el hijo izquierdo es siempre el nodo siguiente.
+  function predictModel(model, inputs, rows, width) {
+    const {offsets, feature, missingLeft, right, number} = model;
+    const trees = offsets.length - 1;
+    const result = new Float64Array(rows);
+    for (let row = 0; row < rows; row++) {
+      const base = row * width;
+      let raw = model.baseline;
+      for (let tree = 0; tree < trees; tree++) {
+        const offset = offsets[tree];
+        let node = offset;
+        let column;
+        while ((column = feature[node]) >= 0) {
+          const value = inputs[base + column];
+          const goLeft = value !== value ? missingLeft[node] !== 0 : value <= number[node];
+          node = goLeft ? node + 1 : offset + right[node];
+        }
+        raw += number[node];
+      }
+      result[row] = Math.exp(raw);
+    }
+    return result;
+  }
+
+  // ---- Estaciones y tablas.
+  const stations = data.stations;
+  const count = stations.id.length;
+  const stationWidth = data.station_features.length;
+  const stationValues = decode(stations.features, Float32Array);
+  const usual = decode(data.usual, Float32Array);
+  const recent = decode(data.recent.values, Float32Array);
+  const recentStart = parseDay(data.recent.start);
+  const observedStart = parseDay(data.weather.observed_start);
+  const capacity = stations.capacity.map(value => value === null ? NaN : value);
+
+  // Posición de cada variable del modelo: de estación, de clima o de calendario.
+  const featureSources = data.features.map(name => {
+    const stationIndex = data.station_features.indexOf(name);
+    return {name, station: stationIndex, weather: WEATHER.indexOf(name)};
+  });
+
+  function typicalWeather(day) {
+    const month = data.weather.typical[day.month - 1];
+    const weather = {precipitation_mm: new Array(HOURS).fill(0)};
+    data.weather.variables.forEach((name, index) => { weather[name] = month[index].slice(); });
+    return weather;
+  }
+
+  function observedWeather(day) {
+    const index = daysBetween(observedStart, day);
+    const values = index >= 0 && index < data.weather.observed.length ? data.weather.observed[index] : null;
+    if (!values) return null;
+    const weather = {};
+    WEATHER.forEach((name, position) => { weather[name] = values[position].slice(); });
+    return weather;
+  }
+
+  // El escenario del panel lateral, como build_weather de src/app.py.
+  function scenarioWeather(day, rain, start, end, shift) {
+    const weather = typicalWeather(day);
+    if (rain > 0) {
+      for (let hour = start; hour <= end; hour++) weather.precipitation_mm[hour] = rain;
+    }
+    weather.apparent_temperature_c = weather.apparent_temperature_c.map(value => value + shift);
+    return weather;
+  }
+
+  // Lluvia de las tres horas anteriores: shift(1).rolling(3, min_periods=1).sum().fillna(0) de pandas.
+  // Se replica su suma deslizante con compensación de Kahan para obtener exactamente los mismos bits.
+  function previousRain(rain) {
+    const values = [NaN].concat(rain.slice(0, HOURS - 1));
+    const result = new Array(HOURS);
+    let observations = 0, total = 0, addError = 0, removeError = 0, repeated = 0, previous = NaN;
+    const add = value => {
+      if (value !== value) return;
+      observations += 1;
+      const y = value - addError, t = total + y;
+      addError = t - total - y;
+      total = t;
+      repeated = value === previous ? repeated + 1 : 1;
+      previous = value;
+    };
+    const remove = value => {
+      if (value !== value) return;
+      observations -= 1;
+      const y = -value - removeError, t = total + y;
+      removeError = t - total - y;
+      total = t;
+    };
+    for (let index = 0; index < HOURS; index++) {
+      const start = Math.max(0, index - 2), end = index + 1;
+      if (index === 0 || start >= index) {
+        previous = values[start]; repeated = 0; total = 0; addError = 0; removeError = 0; observations = 0;
+        for (let position = start; position < end; position++) add(values[position]);
+      } else {
+        for (let position = Math.max(0, index - 3); position < start; position++) remove(values[position]);
+        for (let position = index; position < end; position++) add(values[position]);
+      }
+      const sum = observations >= 1 ? (repeated >= observations ? previous * observations : total) : NaN;
+      result[index] = sum !== sum ? 0 : sum;
+    }
+    return result;
+  }
+
+  // Predice salidas y llegadas de cada estación para las 24 horas, como predict_day.
+  function predictDay(day, weather, isHoliday) {
+    const previous = previousRain(weather.precipitation_mm);
+    const workday = day.weekday < 5 && !isHoliday;
+    // Para un día posterior a los datos se usa el último nivel reciente conocido de cada estación.
+    const recentDay = Math.min(Math.max(daysBetween(recentStart, day), 0), data.recent.days - 1);
+    const width = featureSources.length;
+    const rows = count * HOURS;
+    const inputs = new Float32Array(rows * width);
+    const usualDepartures = new Float64Array(rows), usualArrivals = new Float64Array(rows);
+    for (let station = 0; station < count; station++) {
+      const usualBase = (station * 2 + (workday ? 1 : 0)) * 2 * HOURS;
+      for (let hour = 0; hour < HOURS; hour++) {
+        const row = station * HOURS + hour;
+        usualDepartures[row] = usual[usualBase + hour];
+        usualArrivals[row] = usual[usualBase + HOURS + hour];
+        const base = row * width;
+        for (let column = 0; column < width; column++) {
+          const source = featureSources[column];
+          let value;
+          if (source.station >= 0) value = stationValues[station * stationWidth + source.station];
+          else if (source.weather >= 0) value = weather[source.name][hour];
+          else switch (source.name) {
+            case "usual_departures": value = usualDepartures[row]; break;
+            case "usual_arrivals": value = usualArrivals[row]; break;
+            case "recent_daily_departures": value = recent[station * data.recent.days + recentDay]; break;
+            case "precipitation_prev_3h": value = previous[hour]; break;
+            case "hour_of_day": value = hour; break;
+            case "day_of_week": value = day.weekday; break;
+            case "month": value = day.month; break;
+            case "is_workday": value = workday ? 1 : 0; break;
+            case "is_holiday": value = isHoliday ? 1 : 0; break;
+            default: throw new Error("Variable desconocida: " + source.name);
+          }
+          // Guardar en Float32Array redondea a precisión simple, como to_numpy(dtype="float32").
+          inputs[base + column] = value;
+        }
+      }
+    }
+    return {
+      day, isHoliday, workday, usualDepartures, usualArrivals,
+      departures: predictModel(models.departures, inputs, rows, width),
+      arrivals: predictModel(models.arrivals, inputs, rows, width),
+    };
+  }
+
+  // Stock inicial recomendado y diagnóstico de cada estación, como plan_day.
+  function planDay(prediction, margin) {
+    const plan = [];
+    for (let station = 0; station < count; station++) {
+      const base = station * HOURS;
+      let trips = 0;
+      for (let hour = 0; hour < HOURS; hour++) trips += prediction.departures[base + hour];
+      let level = 0, lowest = Infinity, highest = -Infinity;
+      for (let hour = START_HOUR; hour < HOURS; hour++) {
+        level += prediction.arrivals[base + hour] - prediction.departures[base + hour];
+        lowest = Math.min(lowest, level);
+        highest = Math.max(highest, level);
+      }
+      const size = capacity[station];
+      const bikesNeeded = Math.ceil(Math.max(-lowest, 0)) + margin;
+      const docksNeeded = Math.ceil(Math.max(highest, 0)) + margin;
+      const fits = bikesNeeded + docksNeeded <= size;
+      // Dentro del rango que sirve, el punto medio deja el mismo resguardo de los dos lados.
+      const target = fits ? roundHalfEven((bikesNeeded + size - docksNeeded) / 2) : Math.min(bikesNeeded, size);
+      const share = target / size;
+      let status;
+      if (size !== size) status = STATUS.unknown;
+      else if (!fits) status = STATUS.visit;
+      else if (share >= 0.6) status = STATUS.loaded;
+      else if (share <= 0.4) status = STATUS.room;
+      else status = STATUS.half;
+      plan.push({
+        index: station, station_id: stations.id[station], name: stations.name[station], zone: stations.zone[station],
+        cluster_name: stations.cluster_name[station], capacity: size, lon: stations.lon[station], lat: stations.lat[station],
+        trips, net_day: level, bikes_needed: bikesNeeded, docks_needed: docksNeeded, target_stock: target,
+        target_share: share, status,
+      });
+    }
+    return plan;
+  }
+
+  // Proyección hora por hora de una estación, como stock_path.
+  function stockPath(prediction, station, initialStock) {
+    const path = {hour: [], departures: [], arrivals: [], stock: []};
+    let level = 0;
+    for (let hour = START_HOUR; hour < HOURS; hour++) {
+      const row = station * HOURS + hour;
+      level += prediction.arrivals[row] - prediction.departures[row];
+      path.hour.push(hour);
+      path.departures.push(prediction.departures[row]);
+      path.arrivals.push(prediction.arrivals[row]);
+      path.stock.push(initialStock + level);
+    }
+    return path;
+  }
+
+  return {
+    STATUS, START_HOUR, parseDay, daysBetween, roundHalfEven, typicalWeather, observedWeather, scenarioWeather,
+    previousRain, predictDay, planDay, stockPath,
+  };
+}
+</script>
+
+<script>
+// ---- Interfaz: la misma que src/app.py.
+(function () {
+  "use strict";
+  const data = JSON.parse(document.getElementById("app-data").textContent);
+  const engine = createEngine(data);
+  const S = engine.STATUS;
+
+  // Lluvia por hora de cada escenario, en milímetros.
+  const RAIN_SCENARIOS = [["Sin lluvia", 0], ["Llovizna", 0.3], ["Lluvia", 1.5], ["Lluvia fuerte", 4]];
+  const STATUS_ORDER = [S.loaded, S.room, S.visit, S.half, S.unknown];
+  const STATUS_COLORS = {
+    [S.loaded]: "#eb6834", [S.room]: "#2a78d6", [S.visit]: "#8e44ad", [S.half]: "#b0afa9", [S.unknown]: "#d9d8d3",
+  };
+  const DAY_NAMES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+  const BLUE = "#2a78d6", ORANGE = "#eb6834", AQUA = "#1baf7a", INK = "#0b0b0b";
+  const PLOT_CONFIG = {displaylogo: false, responsive: true, modeBarButtonsToRemove: ["select2d", "lasso2d", "autoScale2d"]};
+  const MAP_CONFIG = {{map_config_json}};
+  let mapZoomReady = false;
+
+  // Ciclovías: cada tramo trae el primer punto y después diferencias, en cienmilésimas de grado.
+  const LANES = {lon: [], lat: []};
+  data.lanes.forEach(segment => {
+    let lon = 0, lat = 0;
+    for (let position = 0; position < segment.length; position += 2) {
+      lon += segment[position]; lat += segment[position + 1];
+      LANES.lon.push(lon / 1e5); LANES.lat.push(lat / 1e5);
+    }
+    LANES.lon.push(null); LANES.lat.push(null);
+  });
+
+  const $ = id => document.getElementById(id);
+  const integerFormat = new Intl.NumberFormat("es-AR", {maximumFractionDigits: 0, useGrouping: "always"});
+  const formatInteger = value => integerFormat.format(engine.roundHalfEven(value)).replace("-", "−");
+  const formatDecimal = (value, digits) => value.toLocaleString("es-AR", {minimumFractionDigits: digits, maximumFractionDigits: digits});
+  function signedPercent(ratio) {
+    const value = engine.roundHalfEven(100 * ratio);
+    return (value > 0 ? "+" : value < 0 ? "−" : "±") + Math.abs(value) + "%";
+  }
+  const escapeHtml = text => String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const known = value => value !== null && value !== undefined && value === value;
+
+  const state = {
+    date: data.dates.default, holiday: false, source: "scenario", rain: 0, start: 7, end: 12, shift: 0,
+    margin: data.safety_margin, tab: "map", lanes: true, onlyAction: true, sort: null, station: null, search: "",
+  };
+  let result = null;
+  const dryCache = new Map();
+  const dirty = {map: true, plan: true, station: true, check: true};
+
+  // ---- Panel lateral
+  function setupControls() {
+    const date = $("in-date");
+    date.min = data.dates.min; date.max = data.dates.max; date.value = state.date;
+    $("date-hint").textContent = "Del " + formatDay(data.dates.min) + " al " + formatDay(data.dates.max) + ".";
+    RAIN_SCENARIOS.forEach(([label], index) => $("in-rain").add(new Option(label, index)));
+    for (let hour = 0; hour < 24; hour++) {
+      $("in-start").add(new Option(hour + " h", hour));
+      $("in-end").add(new Option((hour + 1) + " h", hour));
+    }
+    $("in-start").value = state.start; $("in-end").value = state.end;
+    $("in-margin").value = state.margin;
+    state.holiday = state.date in data.holidays;
+    $("in-holiday").checked = state.holiday;
+
+    date.addEventListener("change", () => {
+      let value = date.value || data.dates.default;
+      if (value < data.dates.min) value = data.dates.min;
+      if (value > data.dates.max) value = data.dates.max;
+      date.value = value;
+      if (value === state.date) return;
+      state.date = value;
+      // Como en Streamlit, al cambiar la fecha la casilla vuelve a lo que dice la lista de feriados.
+      state.holiday = value in data.holidays;
+      $("in-holiday").checked = state.holiday;
+      schedule();
+    });
+    $("in-holiday").addEventListener("change", event => { state.holiday = event.target.checked; schedule(); });
+    document.querySelectorAll("input[name=source]").forEach(input => input.addEventListener("change", event => {
+      state.source = event.target.value; schedule();
+    }));
+    $("in-rain").addEventListener("change", event => { state.rain = Number(event.target.value); schedule(); });
+    $("in-start").addEventListener("change", event => {
+      state.start = Number(event.target.value);
+      if (state.end < state.start) { state.end = state.start; $("in-end").value = state.end; }
+      schedule();
+    });
+    $("in-end").addEventListener("change", event => {
+      state.end = Number(event.target.value);
+      if (state.start > state.end) { state.start = state.end; $("in-start").value = state.start; }
+      schedule();
+    });
+    $("in-shift").addEventListener("input", event => { state.shift = Number(event.target.value); schedule(); });
+    $("in-margin").addEventListener("input", event => { state.margin = Number(event.target.value); schedule(); });
+
+    $("in-lanes").addEventListener("change", event => { state.lanes = event.target.checked; dirty.map = true; renderVisible(); });
+    $("in-only-action").addEventListener("change", event => { state.onlyAction = event.target.checked; dirty.plan = true; renderVisible(); });
+    $("download").addEventListener("click", downloadPlan);
+    $("in-search").addEventListener("input", event => { state.search = event.target.value; fillStationList(); });
+    $("in-station").addEventListener("change", event => { state.station = Number(event.target.value); renderStation(); });
+
+    const tabs = [...document.querySelectorAll("[role=tab]")];
+    tabs.forEach((tab, position) => {
+      tab.addEventListener("click", () => selectTab(tab.id.slice(4)));
+      tab.addEventListener("keydown", event => {
+        const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+        if (!step) return;
+        const next = tabs[(position + step + tabs.length) % tabs.length];
+        next.focus(); selectTab(next.id.slice(4));
+      });
+    });
+  }
+
+  function selectTab(name) {
+    state.tab = name;
+    document.querySelectorAll("[role=tab]").forEach(tab => {
+      const selected = tab.id === "tab-" + name;
+      tab.setAttribute("aria-selected", selected);
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll("[role=tabpanel]").forEach(panel => { panel.hidden = panel.id !== "panel-" + name; });
+    renderVisible();
+    // Un gráfico que estuvo oculto no se entera si cambió el ancho de la ventana, y Plotly.react
+    // conserva el ancho anterior.
+    $("panel-" + name).querySelectorAll(".js-plotly-plot").forEach(plot => Plotly.Plots.resize(plot));
+  }
+
+  // Los controles se mueven más rápido de lo que conviene recalcular: se calcula una vez por cuadro.
+  let pending = false;
+  function schedule() {
+    $("out-shift").textContent = (state.shift > 0 ? "+" : state.shift < 0 ? "−" : "") + Math.abs(state.shift) + " °C";
+    $("out-margin").textContent = state.margin + (state.margin === 1 ? " bicicleta" : " bicicletas");
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => { pending = false; update(); });
+  }
+
+  function formatDay(text) {
+    const [year, month, day] = text.split("-");
+    return day + "/" + month + "/" + year;
+  }
+
+  // Arma el clima del día según el panel lateral, como build_weather de src/app.py.
+  function buildWeather(day) {
+    const observed = engine.observedWeather(day);
+    $("observed-option").hidden = observed === null;
+    if (observed === null && state.source === "observed") {
+      state.source = "scenario";
+    }
+    document.querySelector("input[name=source][value=" + state.source + "]").checked = true;
+    $("scenario-controls").hidden = state.source !== "scenario";
+    if (state.source === "observed") {
+      const rain = observed.precipitation_mm.reduce((sum, value) => sum + value, 0);
+      return {weather: observed, description: "clima registrado, " + formatDecimal(rain, 1) + " mm de lluvia"};
+    }
+    const [label, amount] = RAIN_SCENARIOS[state.rain];
+    $("rain-hours").hidden = amount === 0;
+    let description = label.toLowerCase();
+    if (amount > 0) description += " de " + state.start + " a " + (state.end + 1) + " h";
+    if (state.shift) description += ", " + Math.abs(state.shift) + " °C " + (state.shift > 0 ? "más" : "menos") + " que lo normal";
+    return {weather: engine.scenarioWeather(day, amount, state.start, state.end, state.shift), description};
+  }
+
+  // ---- Cálculo
+  function update() {
+    try {
+      const day = engine.parseDay(state.date);
+      const {weather, description} = buildWeather(day);
+      const prediction = engine.predictDay(day, weather, state.holiday);
+      const plan = engine.planDay(prediction, state.margin);
+      const dryKey = state.date + "|" + state.holiday;
+      if (!dryCache.has(dryKey)) {
+        const dry = engine.predictDay(day, engine.typicalWeather(day), state.holiday);
+        dryCache.set(dryKey, dry.departures.reduce((sum, value) => sum + value, 0));
+      }
+      result = {day, prediction, plan, description, dryTrips: dryCache.get(dryKey)};
+      Object.keys(dirty).forEach(key => { dirty[key] = true; });
+      renderSummary();
+      renderVisible();
+      $("failure").hidden = true;
+    } catch (error) {
+      $("failure").hidden = false;
+      $("failure").textContent = "No se pudo calcular la predicción: " + error.message;
+      throw error;
+    }
+  }
+
+  function renderSummary() {
+    const {day, plan, description, dryTrips} = result;
+    const kind = state.holiday ? "feriado" : DAY_NAMES[day.weekday];
+    const summary = $("summary");
+    const date = document.createElement("b");
+    date.textContent = formatDay(state.date);
+    summary.replaceChildren(date, " (" + kind + "), " + description + ".");
+
+    const name = data.holidays[state.date];
+    $("holiday-name").hidden = !name;
+    $("holiday-name").textContent = name ? "Feriado: " + name : "";
+
+    const trips = plan.reduce((sum, row) => sum + row.trips, 0);
+    $("out-trips").textContent = formatInteger(trips);
+    const change = $("out-trips-change");
+    if (Math.abs(trips - dryTrips) > 1) {
+      const ratio = trips / dryTrips - 1;
+      change.textContent = (ratio > 0 ? "↑ " : "↓ ") + signedPercent(ratio) + " respecto de un día seco";
+      change.className = "note " + (ratio > 0 ? "up" : "down");
+    } else {
+      change.textContent = "";
+      change.className = "note";
+    }
+    const counts = {};
+    plan.forEach(row => { counts[row.status] = (counts[row.status] || 0) + 1; });
+    $("out-loaded").textContent = counts[S.loaded] || 0;
+    $("out-room").textContent = counts[S.room] || 0;
+    $("out-visit").textContent = counts[S.visit] || 0;
+  }
+
+  // Con responsive, Plotly ocupa el 100% del alto del contenedor: si el contenedor no tiene alto
+  // propio, al redimensionar el gráfico queda en cero.
+  function draw(id, traces, layout, config) {
+    $(id).style.height = layout.height + "px";
+    return Plotly.react(id, traces, layout, config);
+  }
+
+  function renderVisible() {
+    if (!result || !dirty[state.tab]) return;
+    dirty[state.tab] = false;
+    ({map: renderMap, plan: renderPlan, station: renderStationTab, check: renderCheck})[state.tab]();
+  }
+
+  // ---- Mapa
+  function renderMap() {
+    const traces = [];
+    if (state.lanes) {
+      traces.push({type: "scatter", x: LANES.lon, y: LANES.lat, mode: "lines", name: "Ciclovías",
+                   line: {color: AQUA, width: 1}, opacity: 0.6, hoverinfo: "skip"});
+    }
+    const shown = result.plan.filter(row => known(row.lon) && known(row.lat));
+    const largest = Math.max(...shown.map(row => row.trips));
+    // Las estaciones que no piden nada se dibujan primero, para que no tapen a las que hay que preparar.
+    for (const status of [...STATUS_ORDER].reverse()) {
+      const rows = shown.filter(row => row.status === status);
+      if (!rows.length) continue;
+      traces.push({
+        type: "scatter", mode: "markers", name: status, x: rows.map(row => row.lon), y: rows.map(row => row.lat),
+        customdata: rows.map(row => [
+          escapeHtml(row.name), known(row.target_stock) ? formatInteger(row.target_stock) + " bicicletas" : "—",
+          known(row.capacity) ? row.capacity : "—", known(row.cluster_name) ? escapeHtml(row.cluster_name) : "Sin clasificar",
+          formatInteger(row.trips),
+        ]),
+        hovertemplate: "<b>%{customdata[0]}</b><br>Dejar con: %{customdata[1]}<br>Capacidad: %{customdata[2]}" +
+                       "<br>Tipo: %{customdata[3]}<br>Viajes previstos: %{customdata[4]}<extra>" + status + "</extra>",
+        marker: {color: STATUS_COLORS[status], size: rows.map(row => row.trips), sizemode: "area",
+                 sizeref: 2 * largest / (15 * 15), sizemin: 3, opacity: 0.92, line: {color: "white", width: 1}},
+      });
+    }
+    // uirevision fijo: al cambiar un control se conserva el acercamiento que eligió quien lo mira.
+    const layout = Object.assign({}, data.layouts.map, {uirevision: "map", height: window.innerWidth < 700 ? 560 : 760});
+    draw("map-plot", traces, layout, MAP_CONFIG).then(plot => {
+      if (!mapZoomReady) { mapZoomReady = true; enableMapZoom(plot); }
+    });
+  }
+
+  // ---- Plan de redistribución
+  const PLAN_COLUMNS = [
+    {key: "name", label: "Estación"}, {key: "zone", label: "Zona"}, {key: "cluster_name", label: "Tipo"},
+    {key: "status", label: "Indicación"}, {key: "capacity", label: "Capacidad", number: true},
+    {key: "target_stock", label: "Dejar con", number: true}, {key: "bikes_needed", label: "Bicicletas mínimas", number: true},
+    {key: "docks_needed", label: "Anclajes libres mínimos", number: true}, {key: "trips", label: "Viajes previstos", number: true},
+  ];
+
+  function planRows() {
+    const order = Object.fromEntries(STATUS_ORDER.map((status, position) => [status, position]));
+    let rows = [...result.plan].sort((a, b) => order[a.status] - order[b.status] || b.trips - a.trips);
+    if (state.onlyAction) rows = rows.filter(row => order[row.status] < 3);
+    if (state.sort) {
+      const {key, descending} = state.sort;
+      const column = PLAN_COLUMNS.find(item => item.key === key);
+      // Los faltantes van siempre al final, como en la tabla de Streamlit.
+      rows.sort((a, b) => {
+        const x = a[key], y = b[key];
+        if (!known(x) || !known(y)) return known(x) ? -1 : known(y) ? 1 : 0;
+        const difference = column.number ? x - y : String(x).localeCompare(String(y), "es");
+        return descending ? -difference : difference;
+      });
+    }
+    return rows;
+  }
+
+  function cellText(column, value) {
+    if (!known(value)) return "—";
+    if (column.key === "trips") return formatInteger(value);
+    return column.number ? formatInteger(value) : String(value);
+  }
+
+  function renderPlan() {
+    const rows = planRows();
+    const table = $("plan-table");
+    const head = document.createElement("tr");
+    PLAN_COLUMNS.forEach(column => {
+      const cell = document.createElement("th");
+      if (column.number) cell.className = "num";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = column.label;
+      if (state.sort && state.sort.key === column.key) {
+        const arrow = document.createElement("span");
+        arrow.className = "arrow";
+        arrow.textContent = state.sort.descending ? "↓" : "↑";
+        button.append(arrow);
+        cell.setAttribute("aria-sort", state.sort.descending ? "descending" : "ascending");
+      }
+      button.addEventListener("click", () => {
+        const same = state.sort && state.sort.key === column.key;
+        state.sort = {key: column.key, descending: same ? !state.sort.descending : Boolean(column.number)};
+        renderPlan();
+      });
+      cell.append(button);
+      head.append(cell);
+    });
+    table.tHead.replaceChildren(head);
+
+    const body = document.createDocumentFragment();
+    rows.forEach(row => {
+      const line = document.createElement("tr");
+      PLAN_COLUMNS.forEach(column => {
+        const cell = document.createElement("td");
+        if (column.number) cell.className = "num";
+        if (column.key === "status") {
+          cell.className = "status-cell";
+          const dot = document.createElement("span");
+          dot.className = "dot";
+          dot.style.background = STATUS_COLORS[row.status];
+          cell.append(dot, row.status);
+        } else {
+          cell.textContent = cellText(column, row[column.key]);
+        }
+        line.append(cell);
+      });
+      body.append(line);
+    });
+    table.tBodies[0].replaceChildren(body);
+    $("plan-count").textContent = rows.length === 1 ? "1 estación" : formatInteger(rows.length) + " estaciones";
+    renderZones();
+  }
+
+  function renderZones() {
+    const zones = new Map();
+    result.plan.filter(row => known(row.zone) && known(row.capacity)).forEach(row => {
+      const zone = zones.get(row.zone) || {zone: row.zone, stations: 0, capacity: 0, target: 0, trips: 0};
+      zone.stations += 1; zone.capacity += row.capacity; zone.target += row.target_stock; zone.trips += row.trips;
+      zones.set(row.zone, zone);
+    });
+    const rows = [...zones.values()].sort((a, b) => b.trips - a.trips);
+    const columns = [["Zona", false], ["Estaciones", true], ["Capacidad", true], ["Bicicletas a dejar", true],
+                     ["Viajes previstos", true], ["Carga objetivo (%)", true]];
+    const table = $("zone-table");
+    const head = document.createElement("tr");
+    columns.forEach(([label, number]) => {
+      const cell = document.createElement("th");
+      if (number) cell.className = "num";
+      cell.textContent = label;
+      head.append(cell);
+    });
+    table.tHead.replaceChildren(head);
+    const body = document.createDocumentFragment();
+    rows.forEach(zone => {
+      const line = document.createElement("tr");
+      const values = [zone.zone, formatInteger(zone.stations), formatInteger(zone.capacity), formatInteger(zone.target),
+                      formatInteger(zone.trips), formatInteger(100 * zone.target / zone.capacity)];
+      values.forEach((value, position) => {
+        const cell = document.createElement("td");
+        if (position > 0) cell.className = "num";
+        cell.textContent = value;
+        line.append(cell);
+      });
+      body.append(line);
+    });
+    table.tBodies[0].replaceChildren(body);
+  }
+
+  function downloadPlan() {
+    const quote = value => {
+      const text = known(value) ? String(value) : "";
+      return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
+    };
+    const lines = [PLAN_COLUMNS.map(column => quote(column.label)).join(",")];
+    planRows().forEach(row => {
+      lines.push(PLAN_COLUMNS.map(column => {
+        const value = row[column.key];
+        if (column.key === "trips") return value.toFixed(1);
+        return quote(value);
+      }).join(","));
+    });
+    // Con BOM, para que Excel reconozca los acentos.
+    const blob = new Blob(["﻿" + lines.join("\r\n") + "\r\n"], {type: "text/csv;charset=utf-8"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "plan_ecobici_" + state.date + ".csv";
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
+  // ---- Detalle de una estación
+  function stationChoices() {
+    return result.plan.filter(row => known(row.capacity)).sort((a, b) => b.trips - a.trips);
+  }
+
+  function fillStationList() {
+    const choices = stationChoices();
+    if (state.station === null || !choices.some(row => row.index === state.station)) state.station = choices[0].index;
+    const words = state.search.toLocaleLowerCase("es").normalize("NFD").replace(/[̀-ͯ]/g, "").split(/\s+/).filter(Boolean);
+    const plain = text => text.toLocaleLowerCase("es").normalize("NFD").replace(/[̀-ͯ]/g, "");
+    let shown = choices.filter(row => words.every(word => plain(row.name).includes(word)));
+    if (!shown.length) shown = choices;
+    // Si la búsqueda deja afuera a la estación elegida, pasa a la primera que coincide.
+    if (!shown.some(row => row.index === state.station)) {
+      state.station = shown[0].index;
+    }
+    const select = $("in-station");
+    select.replaceChildren(...shown.map(row => new Option(row.name, row.index)));
+    select.value = state.station;
+    renderStation();
+  }
+
+  function renderStationTab() { fillStationList(); }
+
+  function renderStation() {
+    const row = result.plan[state.station];
+    const path = engine.stockPath(result.prediction, row.index, row.target_stock);
+    $("out-type").textContent = known(row.cluster_name) ? row.cluster_name : "Sin clasificar";
+    $("out-capacity").textContent = formatInteger(row.capacity) + " anclajes";
+    $("out-target").textContent = formatInteger(row.target_stock) + " bicicletas";
+    $("out-status").textContent = row.status;
+
+    const traces = [
+      {type: "bar", x: path.hour, y: path.arrivals, name: "Llegadas previstas", marker: {color: BLUE},
+       hovertemplate: "%{y:.1f}<extra>Llegadas previstas</extra>"},
+      {type: "bar", x: path.hour, y: path.departures.map(value => -value), name: "Salidas previstas", marker: {color: ORANGE},
+       customdata: path.departures, hovertemplate: "%{customdata:.1f}<extra>Salidas previstas</extra>"},
+      {type: "scatter", x: path.hour, y: path.stock, name: "Bicicletas en la estación", mode: "lines+markers",
+       line: {color: INK, width: 3}, marker: {size: 6}, hovertemplate: "%{y:.1f}<extra>Bicicletas en la estación</extra>"},
+    ];
+    const layout = Object.assign({}, data.layouts.station, {
+      shapes: [
+        {type: "line", xref: "paper", x0: 0, x1: 1, yref: "y", y0: row.capacity, y1: row.capacity,
+         line: {color: "#52514e", width: 1.5, dash: "dash"}},
+        {type: "line", xref: "paper", x0: 0, x1: 1, yref: "y", y0: 0, y1: 0, line: {color: "#a9a8a2", width: 1}},
+      ],
+      annotations: [{xref: "paper", x: 1, xanchor: "right", yref: "y", y: row.capacity, yanchor: "bottom",
+                     text: "Capacidad", showarrow: false, font: {size: 13, color: "#52514e"}}],
+    });
+    draw("station-plot", traces, layout, PLOT_CONFIG);
+  }
+
+  // ---- ¿Qué tan bien predice?
+  function renderCheck() {
+    const index = engine.daysBetween(engine.parseDay(data.actual.start), result.day);
+    const real = index >= 0 && index < data.actual.days.length ? data.actual.days[index] : null;
+    $("check-empty").hidden = real !== null;
+    $("check-content").hidden = real === null;
+    if (real === null) return;
+
+    const hours = [...Array(24).keys()];
+    const predicted = hours.map(() => 0), usual = hours.map(() => 0);
+    const {departures, usualDepartures} = result.prediction;
+    for (let row = 0; row < departures.length; row++) {
+      predicted[row % 24] += departures[row];
+      usual[row % 24] += usualDepartures[row];
+    }
+    const total = values => values.reduce((sum, value) => sum + value, 0);
+    const realTotal = total(real), predictedTotal = total(predicted), usualTotal = total(usual);
+    $("out-real").textContent = formatInteger(realTotal);
+    $("out-model").textContent = formatInteger(predictedTotal);
+    $("out-model-change").textContent = signedPercent(predictedTotal / realTotal - 1) + " respecto de lo real";
+    $("out-usual").textContent = formatInteger(usualTotal);
+    $("out-usual-change").textContent = signedPercent(usualTotal / realTotal - 1) + " respecto de lo real";
+
+    const traces = [
+      {type: "scatter", x: hours, y: real, name: "Real", mode: "lines", line: {color: INK, width: 4},
+       hovertemplate: "%{y:,.0f} viajes<extra>Real</extra>"},
+      {type: "scatter", x: hours, y: predicted, name: "Modelo", mode: "lines", line: {color: BLUE, width: 3},
+       hovertemplate: "%{y:,.0f} viajes<extra>Modelo</extra>"},
+      {type: "scatter", x: hours, y: usual, name: "Lo habitual", mode: "lines", line: {color: "#a9a8a2", width: 3, dash: "dash"},
+       hovertemplate: "%{y:,.0f} viajes<extra>Lo habitual</extra>"},
+    ];
+    draw("check-plot", traces, data.layouts.check, PLOT_CONFIG);
+  }
+
+  setupControls();
+  schedule();
+})();
+</script>
+</body>
+</html>

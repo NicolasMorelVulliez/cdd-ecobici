@@ -2,3 +2,5 @@
 __pycache__/
 # Modelos entrenados por src/train_demand.py (solo la carpeta de la raíz, no reports/models).
 /models/
+# Archivos que dejan las pruebas automáticas en el navegador.
+.playwright-mcp/

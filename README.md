@@ -14,12 +14,21 @@ planificar el día anterior con cuántas bicicletas conviene dejar cada estació
 - **Valor:** las estaciones se dejan preparadas según lo que se espera para el día siguiente, y los días de lluvia no se
   gasta logística en una demanda que no va a estar.
 
+## Ver en línea
+
+Sin descargar ni ejecutar nada:
+
+- [Reporte general](https://htmlpreview.github.io/?https://github.com/gustavo-cantero/cdd-ecobici/blob/main/reports/informe.html)
+- [Aplicación](https://htmlpreview.github.io/?https://github.com/gustavo-cantero/cdd-ecobici/blob/main/reports/app.html)
+
+Pesan entre 7 y 8 MB cada uno, así que tardan unos segundos en abrir.
+
 ## Qué incluye
 
 | Entregable | Dónde está |
 |---|---|
 | Reporte general, con comparación de algoritmos y una predicción interactiva | `reports/informe.html` |
-| Aplicación con el plan de redistribución para un día | `src/app.py` |
+| Aplicación con el plan de redistribución para un día | `reports/app.html` (también en Streamlit: `src/app.py`) |
 | Análisis exploratorio | `src/eda.py` y `reports/eda/` |
 | Tipos de estación (K-means) | `src/cluster_stations.py` |
 | Modelo de demanda (gradient boosting) | `src/train_demand.py` |
@@ -75,6 +84,7 @@ Hace todos los pasos en orden y tarda unos 10 minutos:
 5. Entrena los modelos de demanda.
 6. Compara algoritmos.
 7. Arma el reporte general.
+8. Arma la aplicación.
 
 Antes de empezar revisa que estén las librerías y los recorridos descomprimidos, y si falta algo dice qué hacer. Si un
 paso falla, se detiene ahí.
@@ -82,20 +92,30 @@ paso falla, se detiene ahí.
 | Opción | Qué hace |
 |---|---|
 | `--offline` | No vuelve a bajar el clima; usa el archivo que ya está en el repositorio |
-| `--app` | Abre la aplicación al terminar |
+| `--app` | Abre la versión en Streamlit de la aplicación al terminar |
 
 ### 4. Ver los resultados
 
 - **Reporte general:** abrir `reports/informe.html` en el navegador. Es un único archivo que funciona sin conexión.
   Ya está en el repositorio, así que se puede ver sin ejecutar nada; al correr el trabajo se vuelve a generar.
-- **Aplicación:**
+- **Aplicación:** abrir `reports/app.html` con doble clic. Se elige el día y el clima previsto, y muestra con cuántas
+  bicicletas dejar cada estación, en un mapa y en una lista descargable. Es un único archivo que funciona sin Python,
+  sin servidor y sin conexión: la predicción la calcula el navegador con los mismos modelos de `models/`. Ya está en el
+  repositorio; se rehace con `python src/build_app.py` (o al correr todo).
+- **Aplicación en Streamlit (alternativa):** la misma aplicación, servida desde Python.
 
   ```
   streamlit run src/app.py
   ```
 
-  Se elige el día y el clima previsto, y muestra con cuántas bicicletas dejar cada estación, en un mapa y en una
-  lista descargable. También funciona sin conexión.
+Para comprobar que la aplicación en HTML predice exactamente lo mismo que Python, con Node.js instalado:
+
+```
+python src/verify_app.py
+```
+
+Compara salidas y llegadas por estación y hora, el stock recomendado y la indicación de cada estación en una serie de
+casos (con `--all-days`, además, cada día que se puede elegir).
 
 Cada script se puede correr por separado (`python src/eda.py`, por ejemplo), siempre después de
 `src/build_dataset.py`.
@@ -116,7 +136,7 @@ data/
   processed/    tablas de trabajo (se generan)
 src/            código
 models/         modelos entrenados (se generan)
-reports/        reporte general y gráficos (están en el repositorio y se rehacen al ejecutar)
+reports/        reporte general, aplicación y gráficos (están en el repositorio y se rehacen al ejecutar)
 ```
 
 Cada carpeta de `data/` tiene un `FUENTE.md` con el origen de los datos, su licencia y las particularidades del
@@ -135,8 +155,10 @@ formato.
 | `train_demand.py` | Entrena y evalúa los modelos de salidas y llegadas por estación y hora |
 | `compare_models.py` | Compara regresión lineal, árbol de decisión, random forest, red neuronal y gradient boosting |
 | `forecast.py` | Predice un día completo y calcula el stock recomendado de cada estación |
-| `basemap.py` | Pone el mapa de la Ciudad de fondo en los gráficos |
-| `app.py` | Aplicación en Streamlit |
+| `basemap.py` | Pone el mapa de la Ciudad de fondo en los gráficos y les habilita el zoom (con `map_zoom.js`) |
+| `build_app.py` | Arma la aplicación `reports/app.html` a partir de `app_template.html`: exporta los árboles de los modelos para que el navegador calcule la predicción |
+| `verify_app.py` | Comprueba con Node.js que la aplicación en HTML da lo mismo que `forecast.py`. No forma parte de `run_all.py` |
+| `app.py` | La aplicación en Streamlit (alternativa a `reports/app.html`) |
 | `build_report.py` | Arma el reporte general a partir de `report_template.html` |
 | `capture_station_status.py` | Captura el estado en vivo de las estaciones. No se usa en el trabajo |
 

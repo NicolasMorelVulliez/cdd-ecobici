@@ -2,12 +2,12 @@
 
 Uso:
     python src/run_all.py              # todo, y al final dice cómo abrir la aplicación
-    python src/run_all.py --app        # todo, y al final abre la aplicación
+    python src/run_all.py --app        # todo, y al final abre la versión en Streamlit
     python src/run_all.py --offline    # sin volver a bajar el clima (usa el archivo que ya está)
 
 Pasos: baja el clima, arma las tablas, hace el análisis exploratorio, agrupa las estaciones,
-entrena los modelos, compara algoritmos y arma el reporte general (reports/informe.html). Si un
-paso falla, se detiene ahí.
+entrena los modelos, compara algoritmos, arma el reporte general (reports/informe.html) y la
+aplicación (reports/app.html). Si un paso falla, se detiene ahí.
 """
 
 import argparse
@@ -36,6 +36,7 @@ STEPS = [
     ("Entrenar los modelos de demanda", "train_demand.py"),
     ("Comparar algoritmos", "compare_models.py"),
     ("Armar el reporte general", "build_report.py"),
+    ("Armar la aplicación", "build_app.py"),
 ]
 
 
@@ -77,7 +78,7 @@ def run_step(title: str, script: str) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Ejecuta todo el trabajo en un solo paso.")
     parser.add_argument("--offline", action="store_true", help="no vuelve a bajar el clima")
-    parser.add_argument("--app", action="store_true", help="abre la aplicación al terminar")
+    parser.add_argument("--app", action="store_true", help="abre la versión en Streamlit al terminar")
     arguments = parser.parse_args()
 
     problems = check_environment()
@@ -99,11 +100,12 @@ def main() -> int:
 
     print(f"\nTodo listo en {(time.time() - started) / 60:.1f} minutos.")
     print(f"Reporte general: {ROOT / 'reports' / 'informe.html'}")
+    print(f"Aplicación (se abre con doble clic): {ROOT / 'reports' / 'app.html'}")
     print(f"Gráficos sueltos: {ROOT / 'reports'}")
     command = [sys.executable, "-m", "streamlit", "run", str(SRC / "app.py")]
     if arguments.app:
         return subprocess.run(command, cwd=ROOT).returncode
-    print("Para abrir la aplicación: streamlit run src/app.py")
+    print("Para abrir la versión en Streamlit: streamlit run src/app.py")
     return 0
 
 

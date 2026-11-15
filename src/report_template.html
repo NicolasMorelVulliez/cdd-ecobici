@@ -179,7 +179,8 @@
   <div class="figure"><h4>A la mañana las bicicletas van de las terminales y los barrios al centro y Puerto Madero</h4>
     <p class="sub">Bicicletas que gana o pierde cada estación entre las 6 y las 11 de un día laborable (últimos doce meses)</p>
     <div class="plot" id="fig-map"></div>
-    <p class="caption">El tamaño de cada punto es la cantidad de viajes por día. Las líneas verdes son las ciclovías. Mapa base: © colaboradores de OpenStreetMap.</p></div>
+    <p class="caption">El tamaño de cada punto es la cantidad de viajes por día. Las líneas verdes son las ciclovías. Para acercar, usá los
+    botones o hacé clic en el mapa y girá la rueda; con doble clic vuelve al encuadre inicial. Mapa base: © colaboradores de OpenStreetMap.</p></div>
 
   <h3>El entorno de la estación</h3>
   <p>Las estaciones más usadas están más cerca del subte (correlación de Spearman de {{corr_subway}} entre la distancia al
@@ -313,8 +314,9 @@
       <div class="scroll"><table><thead><tr><th>Estación</th><th class="num">Capacidad</th><th class="num">Dejar con</th></tr></thead><tbody id="out-room-list"></tbody></table></div></div>
   </div>
   <p class="caption">Las listas muestran las seis estaciones más exigidas de cada lado. El plan completo, con mapa, las
-  {{station_count}} estaciones, cualquier fecha y lluvia en las horas que se elijan, está en la aplicación:
-  <code>streamlit run src/app.py</code>.</p>
+  {{station_count}} estaciones, cualquier fecha y lluvia en las horas que se elijan, está en la aplicación
+  <code>reports/app.html</code>, que se abre con doble clic y calcula la predicción en el navegador. También se puede
+  abrir en Streamlit con <code>streamlit run src/app.py</code>.</p>
 </section>
 
 <section id="limites">
@@ -349,9 +351,15 @@
 const FIGURES = {{figures_json}};
 const SIM = {{scenarios_json}};
 const CONFIG = {displayModeBar: false, responsive: true};
+// Los mapas se pueden acercar; el resto de los gráficos quedan fijos y la rueda desplaza la página.
+const MAP_CONFIG = {{map_config_json}};
+const MAPS = ["fig-map"];
+{{map_zoom_js}}
 
 for (const [id, figure] of Object.entries(FIGURES)) {
-  Plotly.newPlot(id, figure.data, figure.layout, CONFIG);
+  const isMap = MAPS.includes(id);
+  Plotly.newPlot(id, figure.data, figure.layout, isMap ? MAP_CONFIG : CONFIG)
+    .then(gd => { if (isMap) enableMapZoom(gd); });
 }
 
 // ---- Predicción interactiva: cada combinación de los selectores es un escenario ya calculado.

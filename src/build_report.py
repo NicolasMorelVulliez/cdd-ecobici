@@ -641,6 +641,8 @@ def main() -> int:
         "generated": long_date(datetime.now()),
         "figures_json": json.dumps(figures, ensure_ascii=False, separators=(",", ":")),
         "scenarios_json": json.dumps(scenarios, ensure_ascii=False, separators=(",", ":")),
+        "map_config_json": json.dumps(basemap.CONFIG),
+        "map_zoom_js": basemap.zoom_script(),
         "plotly_js": get_plotlyjs(),
     }
 
