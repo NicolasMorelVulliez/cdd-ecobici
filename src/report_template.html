@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ecobici: cuánta redistribución hace falta mañana</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #ffffff; --line: #e4e3df;
+    --text: #0b0b0b; --text-2: #52514e; --text-3: #7c7b76;
+    --blue: #2a78d6; --orange: #eb6834; --aqua: #1baf7a; --tint: #eef4fc;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--surface); color: var(--text);
+         font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1120px; margin: 0 auto; padding: 0 20px 80px; }
+  header.cover { padding: 56px 0 28px; border-bottom: 1px solid var(--line); }
+  .eyebrow { color: var(--text-3); font-size: 14px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 10px; }
+  h1 { font-size: 40px; line-height: 1.15; margin: 0 0 16px; letter-spacing: -.01em; }
+  h2 { font-size: 28px; line-height: 1.2; margin: 64px 0 8px; padding-top: 8px; }
+  h3 { font-size: 20px; margin: 36px 0 8px; }
+  p { margin: 10px 0; max-width: 78ch; }
+  .lead { font-size: 21px; color: var(--text-2); max-width: 70ch; }
+  .hypothesis { border-left: 4px solid var(--blue); background: var(--tint); padding: 16px 20px; margin: 22px 0;
+                font-size: 20px; max-width: 80ch; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 14px 0; font-size: 15px;
+            border-bottom: 1px solid var(--line); }
+  nav.toc a { color: var(--blue); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 22px 0; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .tile .value { font-size: 34px; font-weight: 650; line-height: 1.1; letter-spacing: -.01em; }
+  .tile .label { color: var(--text-2); font-size: 15px; margin-top: 6px; }
+  .tile .note { color: var(--text-3); font-size: 13.5px; margin-top: 4px; }
+  .figure { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 6px; margin: 18px 0; }
+  .figure h4 { margin: 4px 6px 0; font-size: 18px; }
+  .figure .sub { margin: 2px 6px 0; color: var(--text-2); font-size: 14.5px; }
+  .figure .plot { width: 100%; }
+  .caption { color: var(--text-3); font-size: 14px; margin: 0 6px 8px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 15.5px; margin: 14px 0; background: var(--panel); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 14px; border-bottom: 2px solid var(--line); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr.chosen td { background: var(--tint); font-weight: 600; }
+  tr.reference td { color: var(--text-2); }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 18px 0; }
+  .flow .step { flex: 1 1 170px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .flow .step b { display: block; font-size: 16px; margin-bottom: 4px; }
+  .flow .step span { color: var(--text-2); font-size: 14px; }
+  .flow .arrow { align-self: center; color: var(--text-3); font-size: 22px; }
+  code { background: #f1f0ec; padding: 1px 5px; border-radius: 4px; font-size: .92em; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px 16px;
+              background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 18px 0 6px; }
+  .controls label { display: block; font-size: 14px; color: var(--text-2); margin-bottom: 4px; }
+  .controls select { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid #c9c8c3; border-radius: 8px; background: #fff; color: var(--text); }
+  .controls select:disabled { color: var(--text-3); background: #f4f3f0; }
+  .lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+  .lists h4 { margin: 10px 0 0; font-size: 17px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; }
+  footer { margin-top: 70px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--text-3); font-size: 14px; }
+  @media (max-width: 640px) { h1 { font-size: 30px; } h2 { font-size: 23px; } .flow .arrow { display: none; } }
+</style>
+</head>
+<body>
+<main>
+
+<header class="cover">
+  <p class="eyebrow">Ciencia de Datos · Trabajo Práctico Obligatorio · UADE</p>
+  <h1>Ecobici: cuánta redistribución de bicicletas hace falta mañana</h1>
+  <p class="lead">Un análisis de {{trips_millions}} millones de viajes del sistema de bicicletas públicas de la Ciudad
+  de Buenos Aires, cruzados con el clima, para planificar el día anterior cómo dejar cada estación.</p>
+</header>
+
+<nav class="toc">
+  <a href="#resumen">Resumen</a>
+  <a href="#preguntas">Qué buscábamos y qué encontramos</a>
+  <a href="#datos">Datos y arquitectura</a>
+  <a href="#exploratorio">Análisis exploratorio</a>
+  <a href="#tipos">Tipos de estación</a>
+  <a href="#algoritmos">Comparación de algoritmos</a>
+  <a href="#evaluacion">Qué tan bien predice</a>
+  <a href="#simulador">Probar una predicción</a>
+  <a href="#limites">Límites</a>
+</nav>
+
+<section id="resumen">
+  <h2>Resumen</h2>
+  <div class="hypothesis"><b>Hipótesis.</b> Cuánta redistribución hace falta mañana es predecible con el clima, y dónde
+  hace falta lo dice el tipo de estación; juntos permiten dimensionar la logística el día anterior.</div>
+  <p><b>Para quién:</b> la gerencia de operaciones del sistema, que hoy decide a dónde mandar los camiones mirando lo que
+  ya pasó. <b>Qué cambia:</b> las estaciones se dejan preparadas a la noche según lo que se espera para el día siguiente,
+  y los días de lluvia no se gasta logística en una demanda que no va a estar.</p>
+  <div class="tiles">
+    <div class="tile"><div class="value">{{peak_hour}} h</div><div class="label">Hora pico de un día laborable</div>
+      <div class="note">{{peak_trips}} viajes por hora, {{peak_ratio}} veces el pico de la mañana</div></div>
+    <div class="tile"><div class="value">{{rain_heavy_change}}</div><div class="label">Viajes cuando llueve entre 2 y 5 mm en la hora</div>
+      <div class="note">respecto de lo esperado para esa hora sin lluvia</div></div>
+    <div class="tile"><div class="value">{{rainy_day_error_model}}</div><div class="label">Error del modelo en los viajes de un día lluvioso</div>
+      <div class="note">contra {{rainy_day_error_reference}} de planificar con el uso habitual</div></div>
+    <div class="tile"><div class="value">{{cluster_count}}</div><div class="label">Tipos de estación</div>
+      <div class="note">según cuándo pierden o ganan bicicletas</div></div>
+  </div>
+</section>
+
+<section id="preguntas">
+  <h2>Qué buscábamos y qué encontramos</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Qué buscábamos</th><th>Qué encontramos</th></tr></thead>
+    <tbody>
+      <tr><td>¿Cuáles son las horas pico?</td>
+          <td>Las {{peak_hour}} de los días laborables, con {{peak_trips}} viajes por hora: {{peak_ratio}} veces el pico de la
+          mañana ({{morning_peak_trips}} a las {{morning_peak_hour}}). Un día laborable tiene {{workday_trips}} viajes y uno de fin de
+          semana {{weekend_trips}}.</td></tr>
+      <tr><td>¿Qué estaciones quedan vacías o saturadas?</td>
+          <td>A la mañana las bicicletas salen de {{top_origins}} y terminan en {{top_destinations}}. Los viajes solos no
+          alcanzan para saber cuándo una estación está vacía, porque no registran cuántas bicicletas tenía; lo que sí
+          muestran es cuánto pierde o gana cada una, y eso se repite lo suficiente como para agruparlas en
+          {{cluster_count}} tipos.</td></tr>
+      <tr><td>¿Cómo cambia el uso los días de lluvia?</td>
+          <td>Con hasta 0,5 mm en la hora los viajes bajan {{rain_light_drop}}; con 0,5 a 2 mm, {{rain_mid_drop}}; con 2 a 5 mm,
+          {{rain_heavy_drop}}. El fin de semana es más sensible que los días laborables. Llueve más de 1 mm en el
+          {{rainy_days_share}} de los días.</td></tr>
+      <tr><td>¿Se puede predecir el desbalance de cada estación?</td>
+          <td><b>En parte.</b> El modelo predice bien cuánto movimiento va a haber, sobre todo con lluvia. No mejora la
+          predicción de qué estación se desbalancea: eso ya lo dice su perfil habitual, y lo que cambia de un día a otro es
+          sobre todo azar (el error es de {{balance_error}} bicicletas por estación y mañana, con o sin modelo). Por eso la
+          hipótesis se reformuló: el clima dice <i>cuánto</i> y el tipo de estación dice <i>dónde</i>.</td></tr>
+      <tr><td>No lo buscábamos</td>
+          <td>El {{payment_date}} se empezó a cobrar el uso y se ve ese mismo día en los datos: los viajes de sábado y domingo
+          cayeron {{payment_weekend_drop}} y los de lunes a viernes {{payment_weekday_drop}}. Explica por qué hoy el fin de semana
+          tiene tan poco uso.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="datos">
+  <h2>Datos y arquitectura</h2>
+  <p>El trabajo usa {{source_count}} fuentes. Los viajes van de {{trips_from}} a {{trips_to}}; el clima y el calendario
+  llegan hasta el {{data_end}}.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Fuente</th><th>Qué aporta</th><th>Origen</th></tr></thead>
+    <tbody>{{sources_rows}}</tbody>
+  </table></div>
+
+  <h3>Tubería de datos</h3>
+  <div class="flow">
+    <div class="step"><b>1. Datos crudos</b><span>CSV de viajes por año, clima horario, feriados, estaciones, ciclovías y transporte</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>2. Unificación</b><span><code>build_dataset.py</code> lleva todos los años al mismo formato y descarta viajes de menos de 1 minuto o más de 24 horas</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>3. Tablas de trabajo</b><span>Viajes, estaciones, horas y estación por hora, en Parquet</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>4. Modelos</b><span>K-means para los tipos de estación y gradient boosting para la demanda</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>5. Salidas</b><span>Este reporte y la aplicación con el plan para el día siguiente</span></div>
+  </div>
+  <p>De los {{trips_read}} viajes leídos quedaron {{trips_kept}}. Casi todos los descartados son de 2024, cuyo archivo trae
+  viajes de menos de un minuto que los otros años ya vienen sin incluir.</p>
+</section>
+
+<section id="exploratorio">
+  <h2>Análisis exploratorio</h2>
+
+  <div class="figure"><h4>Desde que se cobra, el fin de semana dejó de parecerse a un día laborable</h4>
+    <p class="sub">Viajes por día, promedio mensual</p><div class="plot" id="fig-history"></div></div>
+
+  <div class="figure"><h4>En día laborable el pico de la tarde es {{peak_ratio}} veces el de la mañana</h4>
+    <p class="sub">Viajes por hora en todo el sistema, promedio de {{trips_from_year}} a {{trips_to_year}}</p><div class="plot" id="fig-hourly"></div></div>
+
+  <div class="figure"><h4>Con más de 2 mm de lluvia en la hora se pierden unos tres de cada cuatro viajes</h4>
+    <p class="sub">Cambio en los viajes respecto de lo esperado para ese mes, tipo de día y hora sin lluvia (de 6 a 22 h)</p>
+    <div class="plot" id="fig-rain"></div>
+    <p class="caption">La lluvia se compara contra horas secas del mismo mes, tipo de día y hora. Compararla contra el
+    promedio general la mezclaría con la época del año.</p></div>
+
+  <div class="figure"><h4>A la mañana las bicicletas van de las terminales y los barrios al centro y Puerto Madero</h4>
+    <p class="sub">Bicicletas que gana o pierde cada estación entre las 6 y las 11 de un día laborable (últimos doce meses)</p>
+    <div class="plot" id="fig-map"></div>
+    <p class="caption">El tamaño de cada punto es la cantidad de viajes por día. Las líneas grises son las ciclovías.</p></div>
+
+  <h3>El entorno de la estación</h3>
+  <p>Las estaciones más usadas están más cerca del subte (correlación de Spearman de {{corr_subway}} entre la distancia al
+  subte y los viajes por día) y tienen más ciclovías alrededor ({{corr_lanes}} con los metros de ciclovía a menos de 300 m).
+  Son relaciones, no causas: las dos cosas se concentran en las zonas más densas de la Ciudad.</p>
+</section>
+
+<section id="tipos">
+  <h2>Tipos de estación</h2>
+  <p>Se agruparon {{clustered_stations}} estaciones con K-means sobre cuatro rasgos: el balance de bicicletas de la mañana, el
+  de la tarde, cuánto se usan el fin de semana respecto de un día laborable y cuánto de noche.</p>
+  <div class="figure"><h4>Cada tipo tiene un día distinto</h4>
+    <p class="sub">Proporción de las salidas y llegadas de un día laborable que ocurre en cada hora</p>
+    <div class="plot" id="fig-clusters"></div></div>
+  <div class="scroll"><table>
+    <thead><tr><th>Tipo</th><th class="num">Estaciones</th><th class="num">Viajes por día</th><th class="num">Balance de la mañana</th>
+      <th class="num">Fin de semana / laborable</th><th>Ejemplos</th></tr></thead>
+    <tbody>{{cluster_rows}}</tbody>
+  </table></div>
+  <p class="caption">Balance de la mañana: llegadas menos salidas de 6 a 11, como proporción de los viajes del día. Negativo: pierde bicicletas.</p>
+
+  <h3>Por qué K-means y por qué cinco grupos</h3>
+  <div class="two">
+    <div>
+      <p>K-means devuelve un perfil promedio por grupo, que se puede dibujar y nombrar. Es lo que necesita alguien de
+      operaciones: un puñado de tipos de estación fáciles de recordar.</p>
+      <p>Primero se probó con el perfil completo hora por hora (48 valores) y los grupos salían poco separados. Con los
+      cuatro rasgos la separación mejora.</p>
+      <p>El índice de silueta prefiere {{best_k}} grupos ({{best_k_score}}). Se usan {{cluster_count}} ({{chosen_k_score}})
+      porque separan a las estaciones de origen y destino fuertes, que son las que hay que reabastecer.</p>
+    </div>
+    <div class="figure"><h4>Separación de los grupos</h4><p class="sub">Índice de silueta según la cantidad de grupos (más alto es mejor)</p>
+      <div class="plot" id="fig-silhouette"></div></div>
+  </div>
+</section>
+
+<section id="algoritmos">
+  <h2>Comparación de algoritmos</h2>
+  <p>Todos los algoritmos se entrenaron con la misma muestra de {{sample_rows}} filas (de {{train_rows}} disponibles, del
+  {{train_from}} al {{train_to}}) y se evaluaron sobre los mismos tres meses que ninguno vio: del {{test_from}} al {{test_to}},
+  {{test_rows}} horas-estación. Usan las mismas {{feature_count}} variables.</p>
+
+  <h3>Regresión: cuántas salidas tiene cada estación en cada hora</h3>
+  <p>Es el problema que resuelve el trabajo. Las dos primeras filas son referencias que se pueden armar con una planilla.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Algoritmo</th><th class="num">Error medio (MAE)</th><th class="num">MAE con lluvia</th><th class="num">RMSE</th>
+      <th class="num">R²</th><th class="num">Error en los viajes del día</th><th class="num">Entrenamiento</th></tr></thead>
+    <tbody>{{regression_rows}}</tbody>
+  </table></div>
+  <p class="caption">MAE y RMSE en viajes por estación y hora (más bajo es mejor). R²: proporción de la variación explicada (más alto es mejor).
+  «Con lluvia»: horas con 0,5 mm o más.</p>
+  <div class="figure"><h4>{{regression_title}}</h4>
+    <p class="sub">Error absoluto medio en viajes por estación y hora; más bajo es mejor</p><div class="plot" id="fig-regression"></div></div>
+
+  <h3>Clasificación: ¿va a ser una hora de alta demanda?</h3>
+  <p>El mismo problema visto como un sí o no: una hora es de alta demanda si la estación tiene {{high_demand}} o más salidas.
+  Pasa en el {{high_demand_share}} de las horas.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Algoritmo</th><th class="num">Exactitud</th><th class="num">Precisión</th><th class="num">Recall</th>
+      <th class="num">F1</th><th class="num">AUC</th><th class="num">Entrenamiento</th></tr></thead>
+    <tbody>{{classification_rows}}</tbody>
+  </table></div>
+  <p class="caption">Precisión: de las horas que el modelo marcó como de alta demanda, cuántas lo fueron. Recall: de las que
+  lo fueron, cuántas marcó. F1 combina las dos. AUC: qué tan bien ordena las horas de más a menos probable.</p>
+  <div class="figure"><h4>{{classification_title}}</h4>
+    <p class="sub">Precisión, recall y F1 para detectar horas de alta demanda; más alto es mejor</p><div class="plot" id="fig-classification"></div></div>
+  <p><b>La exactitud engaña.</b> Decir siempre que no acierta el {{majority_accuracy}} de las veces, porque casi todas las
+  horas son de baja demanda, y no detecta ninguna de las que importan. Por eso se miran precisión, recall y F1.</p>
+
+  <h3>Por qué gradient boosting</h3>
+  {{choice_text}}
+</section>
+
+<section id="evaluacion">
+  <h2>Qué tan bien predice</h2>
+  <p>El modelo del trabajo es el gradient boosting entrenado con todos los datos, uno para salidas y otro para llegadas.
+  Se compara contra el uso habitual de cada estación ajustado por sus últimas cuatro semanas, que es lo mejor que se puede
+  hacer sin un modelo.</p>
+  <div class="tiles">
+    <div class="tile"><div class="value">{{daily_error_model}}</div><div class="label">Error en los viajes totales del día</div>
+      <div class="note">contra {{daily_error_reference}} de la referencia</div></div>
+    <div class="tile"><div class="value">{{rainy_day_error_model}}</div><div class="label">Error en los días con 5 mm o más de lluvia</div>
+      <div class="note">contra {{rainy_day_error_reference}} de la referencia ({{rainy_days_test}} días)</div></div>
+    <div class="tile"><div class="value">{{hourly_rain_gain}}</div><div class="label">Menos error por estación y hora cuando llueve</div>
+      <div class="note">{{hourly_rain_model}} contra {{hourly_rain_reference}} viajes</div></div>
+    <div class="tile"><div class="value">{{balance_error}}</div><div class="label">Error en el balance de la mañana de una estación</div>
+      <div class="note">bicicletas; igual que la referencia ({{balance_error_reference}})</div></div>
+  </div>
+  <div class="figure"><h4>El modelo sigue las caídas de los días de lluvia; el uso habitual no</h4>
+    <p class="sub">Viajes por día en los tres meses de prueba. Las franjas marcan los días con 5 mm o más de lluvia</p>
+    <div class="plot" id="fig-daily"></div></div>
+  <div class="two">
+    <div class="figure"><h4>Qué mira el modelo</h4><p class="sub">Cuánto empeora el error al desordenar cada variable</p>
+      <div class="plot" id="fig-importance"></div></div>
+    <div>
+      <h3>Cómo leerlo</h3>
+      <p>La variable que más pesa es el uso habitual de la estación a esa hora: la mayor parte de la demanda es rutina.
+      Después vienen la ubicación, el nivel de las últimas semanas y el clima.</p>
+      <p>El modelo aporta donde la rutina se rompe. En horas sin lluvia casi no hay diferencia con la referencia
+      ({{hourly_all_model}} contra {{hourly_all_reference}} viajes de error por estación y hora). Con lluvia el error baja
+      {{hourly_rain_gain}}.</p>
+      <p>Lo que no logra es anticipar el balance de cada estación mejor que su perfil habitual. De un día a otro, que una
+      estación termine la mañana con tres bicicletas más o menos es sobre todo azar.</p>
+    </div>
+  </div>
+</section>
+
+<section id="simulador">
+  <h2>Probar una predicción</h2>
+  <p>Elegí las condiciones del día y mirá qué prevé el modelo. Son {{scenario_count}} escenarios calculados con el mismo modelo
+  de la aplicación, para una semana tipo con el nivel de uso más reciente.</p>
+  <div class="controls">
+    <div><label for="in-day">Tipo de día</label><select id="in-day"></select></div>
+    <div><label for="in-month">Mes</label><select id="in-month"></select></div>
+    <div><label for="in-rain">Lluvia</label><select id="in-rain"></select></div>
+    <div><label for="in-window">Cuándo llueve</label><select id="in-window"></select></div>
+    <div><label for="in-temp">Temperatura</label><select id="in-temp"></select></div>
+  </div>
+  <div class="tiles">
+    <div class="tile"><div class="value" id="out-trips">–</div><div class="label">Viajes previstos en el día</div><div class="note" id="out-change"></div></div>
+    <div class="tile"><div class="value" id="out-loaded">–</div><div class="label">Estaciones a dejar cargadas</div><div class="note">necesitan arrancar con más del 60% de su capacidad</div></div>
+    <div class="tile"><div class="value" id="out-room">–</div><div class="label">Estaciones a dejar con lugar</div><div class="note">necesitan arrancar con menos del 40%</div></div>
+    <div class="tile"><div class="value" id="out-visit">–</div><div class="label">Necesitan visita durante el día</div><div class="note">ningún stock inicial les alcanza</div></div>
+  </div>
+  <div class="figure"><h4 id="sim-title">Viajes por hora previstos</h4>
+    <p class="sub">Todo el sistema. La línea gris es el mismo día sin lluvia</p><div class="plot" id="fig-sim"></div></div>
+  <div class="lists">
+    <div><h4><span class="dot" style="background:var(--orange)"></span>Dejar cargadas</h4>
+      <div class="scroll"><table><thead><tr><th>Estación</th><th class="num">Capacidad</th><th class="num">Dejar con</th></tr></thead><tbody id="out-load-list"></tbody></table></div></div>
+    <div><h4><span class="dot" style="background:var(--blue)"></span>Dejar con lugar</h4>
+      <div class="scroll"><table><thead><tr><th>Estación</th><th class="num">Capacidad</th><th class="num">Dejar con</th></tr></thead><tbody id="out-room-list"></tbody></table></div></div>
+  </div>
+  <p class="caption">Las listas muestran las seis estaciones más exigidas de cada lado. El plan completo, con mapa, las
+  {{station_count}} estaciones, cualquier fecha y lluvia en las horas que se elijan, está en la aplicación:
+  <code>streamlit run src/app.py</code>.</p>
+</section>
+
+<section id="limites">
+  <h2>Límites</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Límite</th><th>Qué implica</th></tr></thead>
+    <tbody>
+      <tr><td>No hay historial de cuántas bicicletas tuvo cada estación</td><td>No se puede comprobar contra la realidad qué
+        estaciones se vaciaron. El plan calcula lo que cada estación necesita, no predice si se va a vaciar.</td></tr>
+      <tr><td>Los viajes son demanda censurada</td><td>Si una estación estaba vacía, el viaje que no se pudo hacer no figura.
+        La demanda real de las estaciones que se vacían seguido está subestimada.</td></tr>
+      <tr><td>El clima usado para evaluar es el registrado</td><td>En la práctica se usaría el pronóstico, que se equivoca. El
+        error real con lluvia va a ser algo mayor que el medido.</td></tr>
+      <tr><td>Tres meses de prueba, todos de invierno</td><td>La evaluación cubre julio a septiembre de 2026. No mide cómo le va
+        al modelo en verano.</td></tr>
+      <tr><td>Los viajes llegan hasta el {{trips_to}}</td><td>El portal no había publicado los meses siguientes al armar el
+        trabajo.</td></tr>
+      <tr><td>La capacidad de las estaciones es la actual</td><td>Para las que cambiaron de tamaño, la capacidad de años
+        anteriores puede no ser la que figura.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>
+  Generado el {{generated}} con <code>python src/build_report.py</code>. Fuentes: Buenos Aires Data (CC BY 2.5 AR), Open-Meteo
+  (CC BY 4.0), CONICET Digital (Gutiérrez y Mené), feed GBFS de BA Ecobici, argentina.gob.ar, ArgentinaDatos y nolaborables.
+</footer>
+</main>
+
+<script>{{plotly_js}}</script>
+<script>
+const FIGURES = {{figures_json}};
+const SIM = {{scenarios_json}};
+const CONFIG = {displayModeBar: false, responsive: true};
+
+for (const [id, figure] of Object.entries(FIGURES)) {
+  Plotly.newPlot(id, figure.data, figure.layout, CONFIG);
+}
+
+// ---- Predicción interactiva: cada combinación de los selectores es un escenario ya calculado.
+const number = new Intl.NumberFormat("es-AR", {maximumFractionDigits: 0});
+const inputs = {day: "in-day", month: "in-month", rain: "in-rain", window: "in-window", temp: "in-temp"};
+for (const [key, id] of Object.entries(inputs)) {
+  const select = document.getElementById(id);
+  SIM.options[key].forEach((label, index) => select.add(new Option(label, index)));
+  select.addEventListener("change", update);
+}
+document.getElementById("in-month").value = SIM.default_month;
+document.getElementById("in-temp").value = SIM.default_temp;
+
+function scenario(day, month, rain, window, temp) {
+  // Sin lluvia no importa la franja: se guarda una sola vez, con la franja 0.
+  return SIM.scenarios[[day, month, rain, rain === 0 ? 0 : window, temp].join("|")];
+}
+
+function fillList(id, rows) {
+  const body = document.getElementById(id);
+  body.replaceChildren();
+  if (!rows.length) {
+    const cell = body.insertRow().insertCell();
+    cell.colSpan = 3; cell.textContent = "Ninguna con estas condiciones";
+    return;
+  }
+  for (const [station, target] of rows) {
+    const row = body.insertRow();
+    row.insertCell().textContent = SIM.stations[station][0];
+    const capacity = row.insertCell(); capacity.className = "num"; capacity.textContent = SIM.stations[station][1];
+    const stock = row.insertCell(); stock.className = "num"; stock.textContent = target + " bicicletas";
+  }
+}
+
+function update() {
+  const value = key => Number(document.getElementById(inputs[key]).value);
+  const [day, month, rain, window, temp] = ["day", "month", "rain", "window", "temp"].map(value);
+  document.getElementById("in-window").disabled = rain === 0;
+  const current = scenario(day, month, rain, window, temp);
+  const dry = scenario(day, month, 0, 0, temp);
+
+  document.getElementById("out-trips").textContent = number.format(current.total);
+  const change = Math.round(100 * (current.total / dry.total - 1));
+  document.getElementById("out-change").textContent =
+    rain === 0 ? "sin lluvia" : (change > 0 ? "+" : "") + change + "% respecto del mismo día sin lluvia";
+  document.getElementById("out-loaded").textContent = current.loaded;
+  document.getElementById("out-room").textContent = current.room;
+  document.getElementById("out-visit").textContent = current.visit;
+  fillList("out-load-list", current.load_list);
+  fillList("out-room-list", current.room_list);
+
+  const hours = [...Array(24).keys()];
+  const traces = [
+    {x: hours, y: dry.hourly, name: "Sin lluvia", mode: "lines", line: {color: "#b0afa9", width: 2, dash: "dot"},
+     hovertemplate: "%{y:,.0f} viajes<extra>Sin lluvia</extra>"},
+    {x: hours, y: current.hourly, name: "Escenario elegido", mode: "lines", line: {color: "#2a78d6", width: 3},
+     hovertemplate: "%{y:,.0f} viajes<extra>Escenario elegido</extra>"},
+  ];
+  const shapes = [];
+  if (rain > 0) {
+    const [start, end] = SIM.windows[window];
+    shapes.push({type: "rect", xref: "x", yref: "paper", x0: start - 0.5, x1: end + 0.5, y0: 0, y1: 1,
+                 fillcolor: "#2a78d6", opacity: 0.08, line: {width: 0}});
+  }
+  const layout = Object.assign({}, SIM.layout, {shapes: shapes});
+  Plotly.react("fig-sim", traces, layout, CONFIG);
+}
+update();
+</script>
+</body>
+</html>

@@ -5,8 +5,9 @@ Uso:
     python src/run_all.py --app        # todo, y al final abre la aplicación
     python src/run_all.py --offline    # sin volver a bajar el clima (usa el archivo que ya está)
 
-Pasos: baja el clima, arma las tablas, hace el análisis exploratorio, agrupa las estaciones y
-entrena los modelos. Si un paso falla, se detiene ahí.
+Pasos: baja el clima, arma las tablas, hace el análisis exploratorio, agrupa las estaciones,
+entrena los modelos, compara algoritmos y arma el reporte general (reports/informe.html). Si un
+paso falla, se detiene ahí.
 """
 
 import argparse
@@ -33,6 +34,8 @@ STEPS = [
     ("Análisis exploratorio", "eda.py"),
     ("Agrupar las estaciones", "cluster_stations.py"),
     ("Entrenar los modelos de demanda", "train_demand.py"),
+    ("Comparar algoritmos", "compare_models.py"),
+    ("Armar el reporte general", "build_report.py"),
 ]
 
 
@@ -95,7 +98,8 @@ def main() -> int:
             return 1
 
     print(f"\nTodo listo en {(time.time() - started) / 60:.1f} minutos.")
-    print(f"Gráficos: {ROOT / 'reports'}")
+    print(f"Reporte general: {ROOT / 'reports' / 'informe.html'}")
+    print(f"Gráficos sueltos: {ROOT / 'reports'}")
     command = [sys.executable, "-m", "streamlit", "run", str(SRC / "app.py")]
     if arguments.app:
         return subprocess.run(command, cwd=ROOT).returncode
