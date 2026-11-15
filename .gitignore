@@ -2,3 +2,5 @@
 __pycache__/
 # Gráficos y resultados generados por los scripts de src/.
 reports/
+# Modelos entrenados por src/train_demand.py.
+models/

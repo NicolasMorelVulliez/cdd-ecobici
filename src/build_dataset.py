@@ -32,6 +32,10 @@ TRIP_FILES = [
     "trips_2026.csv",
 ]
 
+# Límite de los datos: se usa todo lo anterior a octubre de 2026. Es el último mes completo que
+# publicó el portal y fija un corte único para viajes, clima y calendario.
+DATA_END = pd.Timestamp("2026-10-01")
+
 # Un viaje de menos de un minuto es una bicicleta que se devolvió sin usar. Los archivos de todos
 # los años ya vienen sin ellos salvo el de 2024, así que se aplica el mismo corte a todos.
 MIN_DURATION_S = 60
@@ -294,8 +298,8 @@ def build_hours(first: pd.Timestamp, last: pd.Timestamp) -> pd.DataFrame:
     weather = pd.read_csv(DATA / "weather" / "open_meteo_horario_2019_2026.csv", skiprows=3)
     weather = weather.rename(columns=WEATHER_COLUMNS)
     weather["hour"] = pd.to_datetime(weather["hour"])
-    # Algunos viajes del último día terminan pasada la medianoche; se corta donde termina el clima.
-    last = min(last, weather["hour"].max())
+    # Algunos viajes del último día terminan pasada la medianoche; se corta en el límite de los datos.
+    last = min(last, DATA_END - pd.Timedelta(hours=1))
     hours = pd.DataFrame({"hour": pd.date_range(first, last, freq="h")}).merge(weather, on="hour", how="left")
 
     holidays = pd.read_csv(DATA / "holidays" / "feriados_2019_2026.csv", parse_dates=["fecha"])
@@ -369,7 +373,8 @@ def main() -> int:
         print(summary, flush=True)
     trips = pd.concat(all_trips, ignore_index=True)
     duplicated = trips["trip_id"].duplicated()
-    trips = trips[~duplicated].sort_values("started_at").reset_index(drop=True)
+    trips = trips[~duplicated & (trips["started_at"] < DATA_END)]
+    trips = trips.sort_values("started_at").reset_index(drop=True)
     print(f"viajes: {len(trips):,} (duplicados entre archivos: {int(duplicated.sum())})")
     trips.to_parquet(OUTPUT / "trips.parquet", index=False)
 
