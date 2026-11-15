@@ -1,7 +1,4 @@
 .venv/
 __pycache__/
-# Gráficos y resultados generados por los scripts de src/. El reporte general sí se versiona.
-reports/*
-!reports/informe.html
-# Modelos entrenados por src/train_demand.py.
-models/
+# Modelos entrenados por src/train_demand.py (solo la carpeta de la raíz, no reports/models).
+/models/

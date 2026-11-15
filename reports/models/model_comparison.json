@@ -1,0 +1,173 @@
+{
+  "train_rows": 5238024,
+  "train_sample": 500000,
+  "test_rows": 873696,
+  "test_from": "2026-07-01",
+  "test_to": "2026-09-30",
+  "high_demand_threshold": 3,
+  "high_demand_share": 0.09195875911072043,
+  "regression": [
+    {
+      "model": "Uso habitual",
+      "kind": "referencia",
+      "seconds": 0.0,
+      "mae": 0.7266275262849319,
+      "rmse": 1.1292229085596805,
+      "r2": 0.3447256122310367,
+      "mae_rain": 0.7546141995127588,
+      "daily_error": 0.45243368263975803
+    },
+    {
+      "model": "Uso habitual ajustado",
+      "kind": "referencia",
+      "seconds": 0.0,
+      "mae": 0.6543484018142772,
+      "rmse": 1.0805990047186804,
+      "r2": 0.39994237391866583,
+      "mae_rain": 0.6048253546011446,
+      "daily_error": 0.25515194014226084
+    },
+    {
+      "model": "Regresión lineal",
+      "kind": "muestra",
+      "seconds": 0.5827264785766602,
+      "mae": 0.6561771035194397,
+      "rmse": 1.0952223540689328,
+      "r2": 0.38359177112579346,
+      "mae_rain": 0.5577857494354248,
+      "daily_error": 0.22733105719089508
+    },
+    {
+      "model": "Regresión de Poisson",
+      "kind": "muestra",
+      "seconds": 0.6303818225860596,
+      "mae": 0.744952917098999,
+      "rmse": 1.2271352511931046,
+      "r2": 0.22616440057754517,
+      "mae_rain": 0.5430541634559631,
+      "daily_error": 0.21804989874362946
+    },
+    {
+      "model": "Árbol de decisión",
+      "kind": "muestra",
+      "seconds": 4.47364068031311,
+      "mae": 0.6712848640935305,
+      "rmse": 1.1135461083571319,
+      "r2": 0.36279343427336797,
+      "mae_rain": 0.4813273387134009,
+      "daily_error": 0.1669551852385861
+    },
+    {
+      "model": "Random forest",
+      "kind": "muestra",
+      "seconds": 11.093953609466553,
+      "mae": 0.6503844058997721,
+      "rmse": 1.061525503136943,
+      "r2": 0.4209384903677793,
+      "mae_rain": 0.47665894991470437,
+      "daily_error": 0.16982347641545475
+    },
+    {
+      "model": "Red neuronal",
+      "kind": "muestra",
+      "seconds": 31.72541356086731,
+      "mae": 0.6508880257606506,
+      "rmse": 1.0622387172093484,
+      "r2": 0.42016011476516724,
+      "mae_rain": 0.4273778200149536,
+      "daily_error": 0.14359982311725616
+    },
+    {
+      "model": "Gradient boosting",
+      "kind": "muestra",
+      "seconds": 3.515101671218872,
+      "mae": 0.6472264027818229,
+      "rmse": 1.0612585800765704,
+      "r2": 0.42122966648552695,
+      "mae_rain": 0.43848486711151097,
+      "daily_error": 0.14619303484243346
+    },
+    {
+      "model": "Gradient boosting (todos los datos)",
+      "kind": "completo",
+      "seconds": 31.266587257385254,
+      "mae": 0.6440711152709863,
+      "rmse": 1.0565562191439286,
+      "r2": 0.4263472833934143,
+      "mae_rain": 0.43678803859401344,
+      "daily_error": 0.13902104943836405
+    }
+  ],
+  "classification": [
+    {
+      "model": "Decir siempre que no",
+      "kind": "referencia",
+      "seconds": 0.0,
+      "accuracy": 0.9080412408892796,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "auc": null
+    },
+    {
+      "model": "Uso habitual ajustado",
+      "kind": "referencia",
+      "seconds": 0.0,
+      "accuracy": 0.9170294930959968,
+      "precision": 0.7086676941063932,
+      "recall": 0.16597381260579508,
+      "f1": 0.2689565454160406,
+      "auc": 0.8825331459879422
+    },
+    {
+      "model": "Regresión logística",
+      "kind": "muestra",
+      "seconds": 1.866699457168579,
+      "accuracy": 0.9178856261216716,
+      "precision": 0.6255583778575808,
+      "recall": 0.2666782833814597,
+      "f1": 0.3739430167110258,
+      "auc": 0.8791935221522075
+    },
+    {
+      "model": "Árbol de decisión",
+      "kind": "muestra",
+      "seconds": 9.853986024856567,
+      "accuracy": 0.9134115298685126,
+      "precision": 0.5500725689404935,
+      "recall": 0.32077068604998504,
+      "f1": 0.4052328689581433,
+      "auc": 0.8454932715691278
+    },
+    {
+      "model": "Random forest",
+      "kind": "muestra",
+      "seconds": 25.374648332595825,
+      "accuracy": 0.9193804252279969,
+      "precision": 0.629948319735565,
+      "recall": 0.2988773274917853,
+      "f1": 0.40540928391143227,
+      "auc": 0.8853561187240866
+    },
+    {
+      "model": "Red neuronal",
+      "kind": "muestra",
+      "seconds": 117.56974697113037,
+      "accuracy": 0.9186810973153133,
+      "precision": 0.6107352170391195,
+      "recall": 0.3190655182714328,
+      "f1": 0.4191533543713926,
+      "auc": 0.8870225166736999
+    },
+    {
+      "model": "Gradient boosting",
+      "kind": "muestra",
+      "seconds": 3.9582200050354004,
+      "accuracy": 0.9196219279932608,
+      "precision": 0.6269319550381373,
+      "recall": 0.31100019914368215,
+      "f1": 0.415757071547421,
+      "auc": 0.887331365372761
+    }
+  ]
+}
