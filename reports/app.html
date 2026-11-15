@@ -4575,7 +4575,10 @@ function createEngine(data) {
 
   function downloadPlan() {
     const quote = value => {
-      const text = known(value) ? String(value) : "";
+      let text = known(value) ? String(value) : "";
+      // Los nombres de estación vienen de datos abiertos. Si uno empezara con un signo que Excel toma
+      // como fórmula, se le antepone un apóstrofo para que lo lea como texto. Los números no se tocan.
+      if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) text = "'" + text;
       return /[",\n]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
     };
     const lines = [PLAN_COLUMNS.map(column => quote(column.label)).join(",")];

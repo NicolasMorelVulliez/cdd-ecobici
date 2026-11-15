@@ -161,8 +161,13 @@ def show_plan(plan: pd.DataFrame, day: pd.Timestamp) -> None:
         table = table[table["Indicación"].isin(list(STATUS_COLORS)[:3])]
     st.dataframe(table[columns], hide_index=True, width="stretch", height=520,
                  column_config={"Viajes previstos": st.column_config.NumberColumn(format="%.0f")})
+    # Los nombres de estación vienen de datos abiertos. Si uno empezara con un signo que Excel toma
+    # como fórmula, se le antepone un apóstrofo para que lo lea como texto.
+    export = table[columns].copy()
+    for column in ("Estación", "Zona", "Tipo", "Indicación"):
+        export[column] = export[column].astype("string").str.replace(r"^([=+\-@\t\r])", r"'\1", regex=True)
     st.download_button(
-        "Descargar el plan (CSV)", table[columns].to_csv(index=False).encode("utf-8-sig"),
+        "Descargar el plan (CSV)", export.to_csv(index=False).encode("utf-8-sig"),
         file_name=f"plan_ecobici_{day:%Y-%m-%d}.csv", mime="text/csv",
     )
 
