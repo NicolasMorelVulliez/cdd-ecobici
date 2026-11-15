@@ -18,9 +18,9 @@ planificar el día anterior con cuántas bicicletas conviene dejar cada estació
 
 | Entregable | Dónde está |
 |---|---|
-| Reporte general, con comparación de algoritmos y una predicción interactiva | `reports/informe.html` (se genera) |
+| Reporte general, con comparación de algoritmos y una predicción interactiva | `reports/informe.html` |
 | Aplicación con el plan de redistribución para un día | `src/app.py` |
-| Análisis exploratorio | `src/eda.py` y `reports/eda/` (se genera) |
+| Análisis exploratorio | `src/eda.py` y `reports/eda/` |
 | Tipos de estación (K-means) | `src/cluster_stations.py` |
 | Modelo de demanda (gradient boosting) | `src/train_demand.py` |
 | Comparación de algoritmos | `src/compare_models.py` |
@@ -87,6 +87,7 @@ paso falla, se detiene ahí.
 ### 4. Ver los resultados
 
 - **Reporte general:** abrir `reports/informe.html` en el navegador. Es un único archivo que funciona sin conexión.
+  Ya está en el repositorio, así que se puede ver sin ejecutar nada; al correr el trabajo se vuelve a generar.
 - **Aplicación:**
 
   ```
@@ -114,7 +115,7 @@ data/
   processed/    tablas de trabajo (se generan)
 src/            código
 models/         modelos entrenados (se generan)
-reports/        reporte general y gráficos (se generan)
+reports/        reporte general y gráficos (están en el repositorio y se rehacen al ejecutar)
 ```
 
 Cada carpeta de `data/` tiene un `FUENTE.md` con el origen de los datos, su licencia y las particularidades del
