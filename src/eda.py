@@ -24,6 +24,13 @@ OUTPUT = ROOT / "reports" / "eda"
 # la red actual y no estaciones que ya no existen.
 RECENT_FROM = "2025-10-01"
 
+# Hechos que cambiaron el uso del sistema y se marcan en el gráfico de evolución.
+PAYMENT_START = "2021-03-13"
+EVENTS = [
+    {"date": "2020-03-20", "label": "Cuarentena"},
+    {"date": PAYMENT_START, "label": "Empieza el cobro"},
+]
+
 DAY_TYPES = {"laborable": "Día laborable", "finde": "Fin de semana", "feriado": "Feriado"}
 RAIN_BINS = [-0.01, 0, 0.5, 2, 5, 100]
 RAIN_LABELS = ["Sin lluvia", "Hasta 0,5 mm", "0,5 a 2 mm", "2 a 5 mm", "Más de 5 mm"]
@@ -116,6 +123,44 @@ def usage_patterns(system: pd.DataFrame) -> None:
         labels={"month": "", "per_day": "Viajes por día"},
     )
     save(figure, "03_evolucion_mensual")
+
+
+def history(daily: pd.DataFrame) -> None:
+    """Muestra la evolución del sistema desde 2019 y el efecto del cobro del servicio.
+
+    :param daily: viajes por día desde 2019, con la marca de día laborable.
+    """
+    daily = daily.copy()
+    daily["Tipo de día"] = np.where(daily["is_workday"], "Día laborable", "Fin de semana o feriado")
+    monthly = (
+        daily.groupby([daily["date"].dt.to_period("M").dt.to_timestamp().rename("month"), "Tipo de día"])["trips"]
+        .mean().reset_index()
+    )
+    figure = px.line(
+        monthly, x="month", y="trips", color="Tipo de día",
+        title="Desde que se cobra, el fin de semana dejó de parecerse a un día laborable",
+        labels={"month": "", "trips": "Viajes por día (promedio mensual)"},
+    )
+    for event in EVENTS:
+        figure.add_vline(x=pd.Timestamp(event["date"]).timestamp() * 1000, line_dash="dash", line_color="gray",
+                         annotation_text=event["label"], annotation_position="top")
+    save(figure, "06_evolucion_desde_2019")
+
+    # Cuatro semanas antes y cuatro después del inicio del cobro.
+    start = pd.Timestamp(PAYMENT_START)
+    window = daily[daily["date"].between(start - pd.Timedelta(days=28), start + pd.Timedelta(days=27))].copy()
+    window["period"] = np.where(window["date"] < start, "antes", "después")
+    # Se separa por sábado y domingo y no por feriado, porque en la ventana cae el 24 de marzo.
+    window["weekend"] = np.where(window["date"].dt.day_of_week >= 5, "Sábado y domingo", "Lunes a viernes")
+    change = window.groupby(["weekend", "period"])["trips"].mean().unstack()
+    change["cambio %"] = 100 * (change["después"] / change["antes"] - 1)
+    print(f"\n== Viajes por día, cuatro semanas antes y después del inicio del cobro ({start:%d/%m/%Y})")
+    print(change.round(0).to_string())
+
+    yearly = daily.groupby([daily["date"].dt.year.rename("year"), "Tipo de día"])["trips"].mean().unstack()
+    yearly["finde / laborable"] = yearly["Fin de semana o feriado"] / yearly["Día laborable"]
+    print("\n== Viajes por día según el año")
+    print(yearly.round(2).to_string())
 
 
 def rain_effect(system: pd.DataFrame) -> None:
@@ -231,6 +276,7 @@ def main() -> int:
 
     system = add_expected(load_system_hours(station_hour, hours))
     usage_patterns(system)
+    history(pd.read_parquet(PROCESSED / "daily_history.parquet"))
     rain_effect(system)
     station_roles(station_hour, hours, stations)
     print(f"\nGráficos en {OUTPUT}")

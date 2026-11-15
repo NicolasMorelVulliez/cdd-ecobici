@@ -8,6 +8,7 @@ Genera en data/processed/:
     stations.parquet      una estación por fila: ubicación, capacidad y distancia a ciclovías y transporte
     hours.parquet         una hora por fila: clima y calendario (día de semana, feriado)
     station_hour.parquet  una fila por estación y hora: salidas y llegadas
+    daily_history.parquet un día por fila desde 2019: cantidad de viajes, para ver la evolución
 """
 
 import json
@@ -31,6 +32,10 @@ TRIP_FILES = [
     "Trips_2025.csv",
     "trips_2026.csv",
 ]
+
+# Años anteriores, que solo se usan para mostrar la evolución del sistema: en 2019 cambió el
+# operador, en 2020 fue la pandemia y en 2021 se empezó a cobrar.
+HISTORY_FILES = ["trips_2019.csv", "trips_2020.csv", "trips_2021.csv"]
 
 # Límite de los datos: se usa todo lo anterior a octubre de 2026. Es el último mes completo que
 # publicó el portal y fija un corte único para viajes, clima y calendario.
@@ -360,6 +365,31 @@ def build_station_hour(trips: pd.DataFrame, stations: pd.DataFrame, hours: pd.Da
     return pd.concat(pieces, ignore_index=True)
 
 
+def build_daily_history(trips: pd.DataFrame) -> pd.DataFrame:
+    """Cuenta los viajes por día desde 2019, para mostrar la evolución del sistema.
+
+    De los años anteriores a 2022 solo se leen la fecha y la duración, con el mismo corte de
+    duración que el resto.
+
+    :param trips: viajes depurados de 2022 en adelante.
+    :returns: una fila por día con la cantidad de viajes y si fue día laborable.
+    """
+    counts = [trips["started_at"].dt.normalize().value_counts()]
+    for name in HISTORY_FILES:
+        raw = pd.read_csv(
+            DATA / "trips" / name, usecols=["fecha_origen_recorrido", "duracion_recorrido"],
+            dtype=str, engine="pyarrow",
+        )
+        duration = pd.to_numeric(raw["duracion_recorrido"].str.replace(",", "", regex=False), errors="coerce")
+        started = pd.to_datetime(raw["fecha_origen_recorrido"], errors="coerce")
+        counts.append(started[duration.between(MIN_DURATION_S, MAX_DURATION_S)].dt.normalize().value_counts())
+    daily = pd.concat(counts).sort_index().rename("trips").rename_axis("date").reset_index()
+
+    holidays = pd.read_csv(DATA / "holidays" / "feriados_2019_2026.csv", parse_dates=["fecha"])["fecha"]
+    daily["is_workday"] = (daily["date"].dt.day_of_week < 5) & ~daily["date"].isin(holidays)
+    return daily
+
+
 def main() -> int:
     started = time.time()
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -398,6 +428,9 @@ def main() -> int:
         f"estación-hora: {len(station_hour):,} filas, salidas {int(station_hour['departures'].sum()):,}, "
         f"llegadas {int(station_hour['arrivals'].sum()):,}"
     )
+    daily = build_daily_history(trips)
+    daily.to_parquet(OUTPUT / "daily_history.parquet", index=False)
+    print(f"historia diaria: {len(daily):,} días, de {daily['date'].min():%d/%m/%Y} a {daily['date'].max():%d/%m/%Y}")
     print(f"listo en {time.time() - started:.0f} s -> {OUTPUT}")
     return 0
 
