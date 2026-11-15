@@ -19,6 +19,7 @@ ese uso habitual por el nivel de las últimas cuatro semanas, así que ya tiene 
 del año. El modelo solo vale si le gana a la segunda.
 """
 
+import json
 import sys
 import time
 from pathlib import Path
@@ -124,11 +125,16 @@ def mean_absolute_error(actual: pd.Series, predicted: pd.Series) -> float:
     return float((actual - predicted).abs().mean())
 
 
-def evaluate(test: pd.DataFrame) -> None:
+def evaluate(test: pd.DataFrame) -> dict:
     """Compara el modelo contra el uso habitual sobre los meses reservados.
 
     :param test: tabla de evaluación con las columnas reales, habituales y predichas.
+    :returns: los resultados de la evaluación, para el reporte general.
     """
+    results = {
+        "test_from": f"{test['hour'].min():%Y-%m-%d}", "test_to": f"{test['hour'].max():%Y-%m-%d}",
+        "days": int(test["date"].nunique()), "rows": len(test),
+    }
     rainy = test["precipitation_mm"] >= 0.5
     print(f"\n== Evaluación sobre {test['date'].nunique()} días ({test['hour'].min():%d/%m/%Y} a {test['hour'].max():%d/%m/%Y})")
     print(f"Horas-estación: {len(test):,}; con lluvia de 0,5 mm o más: {int(rainy.sum()):,}")
@@ -149,6 +155,7 @@ def evaluate(test: pd.DataFrame) -> None:
     errors["mejora sobre ajustado %"] = 100 * (1 - errors["modelo"] / errors["habitual ajustado"])
     print("Error absoluto medio por estación y hora (en viajes):")
     print(errors.round(3).to_string(index=False))
+    results["hourly_errors"] = errors.to_dict("records")
 
     # En términos de operación: viajes totales del día, que definen cuánta logística hace falta.
     daily = test.groupby("date").agg(
@@ -157,19 +164,28 @@ def evaluate(test: pd.DataFrame) -> None:
     )
     rain_by_day = test.drop_duplicates("hour").groupby("date")["precipitation_mm"].sum()
     wet = rain_by_day[rain_by_day >= 5].index
+    results["daily"] = daily.assign(rain=rain_by_day).reset_index().assign(
+        date=lambda frame: frame["date"].dt.strftime("%Y-%m-%d")).to_dict("records")
+    results["daily_errors"] = {}
     for label, days in (("todos los días", daily.index), (f"los {len(wet)} días con 5 mm o más de lluvia", wet)):
         subset = daily.loc[days]
-        parts = [
-            f"{name} {((subset[column] - subset['actual']).abs() / subset['actual']).mean():.1%}"
+        shares = {
+            name: float(((subset[column] - subset["actual"]).abs() / subset["actual"]).mean())
             for name, column in (("habitual", "usual"), ("habitual ajustado", "adjusted"), ("modelo", "model"))
-        ]
-        print(f"Error en los viajes totales del día, {label}: {', '.join(parts)}")
+        }
+        results["daily_errors"][label] = shares
+        print(f"Error en los viajes totales del día, {label}: "
+              + ", ".join(f"{name} {share:.1%}" for name, share in shares.items()))
 
     # Y lo que más importa para redistribuir: el balance de la mañana de cada estación.
     morning = test[test["is_workday"] & test["hour_of_day"].between(6, 10)].copy()
     for kind in ("", "usual_", "adjusted_", "predicted_"):
         morning[f"{kind}net"] = morning[f"{kind}arrivals"] - morning[f"{kind}departures"]
     balance = morning.groupby(["station_id", "date"])[["net", "usual_net", "adjusted_net", "predicted_net"]].sum()
+    results["morning_balance_errors"] = {
+        name: mean_absolute_error(balance["net"], balance[column])
+        for name, column in (("habitual", "usual_net"), ("habitual ajustado", "adjusted_net"), ("modelo", "predicted_net"))
+    }
     print(
         "Error en el balance de bicicletas de 6 a 11 por estación y día laborable: "
         f"habitual {mean_absolute_error(balance['net'], balance['usual_net']):.2f}, "
@@ -187,6 +203,7 @@ def evaluate(test: pd.DataFrame) -> None:
         f"modelo {mean_absolute_error(by_zone['net'], by_zone['predicted_net']):.2f} bicicletas "
         f"(balance típico de una zona: {by_zone['net'].abs().mean():.1f})"
     )
+    return results
 
 
 def main() -> int:
@@ -220,7 +237,12 @@ def main() -> int:
             print("Variables que más pesan (cuánto empeora el error al desordenarlas):")
             print(ranking.head(10).round(4).to_string())
 
-    evaluate(add_adjusted_reference(test))
+    results = evaluate(add_adjusted_reference(test))
+    results["train_rows"] = len(train)
+    results["train_from"] = f"{train['hour'].min():%Y-%m-%d}"
+    results["train_to"] = f"{train['hour'].max():%Y-%m-%d}"
+    results["importance"] = ranking.round(5).to_dict()
+    (MODELS / "evaluation.json").write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nModelos en {MODELS} ({time.time() - started:.0f} s)")
     return 0
 

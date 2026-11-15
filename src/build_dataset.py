@@ -413,6 +413,9 @@ def main() -> int:
     trips = trips.sort_values("started_at").reset_index(drop=True)
     print(f"viajes: {len(trips):,} (duplicados entre archivos: {int(duplicated.sum())})")
     trips.to_parquet(OUTPUT / "trips.parquet", index=False)
+    # Resumen de la depuración, para el reporte general.
+    build_summary = {"trips_read": sum(item["leídos"] for item in summaries), "trips_kept": len(trips), "files": summaries}
+    (OUTPUT / "build_summary.json").write_text(json.dumps(build_summary, indent=2, ensure_ascii=False), encoding="utf-8")
 
     stations = build_stations(pd.concat(all_seen, ignore_index=True), trips)
     stations.to_parquet(OUTPUT / "stations.parquet", index=False)
