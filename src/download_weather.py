@@ -19,8 +19,8 @@ LATITUDE = -34.6
 LONGITUDE = -58.44
 
 START_DATE = "2019-01-01"
-# Último día con recorridos publicados.
-END_DATE = "2026-09-30"
+# Límite de los datos del trabajo.
+END_DATE = "2026-10-31"
 
 VARIABLES = [
     "temperature_2m",

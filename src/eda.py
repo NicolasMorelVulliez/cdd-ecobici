@@ -271,7 +271,8 @@ def main() -> int:
     hours = pd.read_parquet(PROCESSED / "hours.parquet")
     stations = pd.read_parquet(PROCESSED / "stations.parquet")
 
-    print(f"Período: {hours['hour'].min()} a {hours['hour'].max()}")
+    print(f"Viajes del {station_hour['hour'].min():%d/%m/%Y} al {station_hour['hour'].max():%d/%m/%Y}; "
+          f"clima y calendario hasta el {hours['hour'].max():%d/%m/%Y}")
     print(f"Viajes: {int(station_hour['departures'].sum()):,}; estaciones: {len(stations)}")
 
     system = add_expected(load_system_hours(station_hour, hours))

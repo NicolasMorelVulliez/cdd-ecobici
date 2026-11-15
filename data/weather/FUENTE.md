@@ -12,7 +12,7 @@
 
 | Archivo | Contenido |
 |---|---|
-| `open_meteo_horario_2019_2026.csv` | 67.920 horas, del 2019-01-01 al 2026-09-30, sin valores vacíos: temperatura, sensación térmica, humedad, precipitación, lluvia, viento, ráfagas, nubosidad y código de estado del tiempo (WMO). |
+| `open_meteo_horario_2019_2026.csv` | 68.664 horas, del 2019-01-01 al 2026-10-31, sin valores vacíos: temperatura, sensación térmica, humedad, precipitación, lluvia, viento, ráfagas, nubosidad y código de estado del tiempo (WMO). |
 
 ## A tener en cuenta
 

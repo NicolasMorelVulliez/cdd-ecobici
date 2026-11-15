@@ -37,9 +37,10 @@ TRIP_FILES = [
 # operador, en 2020 fue la pandemia y en 2021 se empezó a cobrar.
 HISTORY_FILES = ["trips_2019.csv", "trips_2020.csv", "trips_2021.csv"]
 
-# Límite de los datos: se usa todo lo anterior a octubre de 2026. Es el último mes completo que
-# publicó el portal y fija un corte único para viajes, clima y calendario.
-DATA_END = pd.Timestamp("2026-10-01")
+# Límite de los datos: se usa todo hasta el 31 de octubre de 2026 inclusive. Fija un corte único
+# para viajes, clima y calendario. Si el portal todavía no publicó los viajes de algún mes anterior
+# a ese límite, las tablas de viajes llegan hasta donde haya datos y el clima llega hasta el límite.
+DATA_END = pd.Timestamp("2026-11-01")
 
 # Un viaje de menos de un minuto es una bicicleta que se devolvió sin usar. Los archivos de todos
 # los años ya vienen sin ellos salvo el de 2024, así que se aplica el mismo corte a todos.
@@ -303,7 +304,8 @@ def build_hours(first: pd.Timestamp, last: pd.Timestamp) -> pd.DataFrame:
     weather = pd.read_csv(DATA / "weather" / "open_meteo_horario_2019_2026.csv", skiprows=3)
     weather = weather.rename(columns=WEATHER_COLUMNS)
     weather["hour"] = pd.to_datetime(weather["hour"])
-    # Algunos viajes del último día terminan pasada la medianoche; se corta en el límite de los datos.
+    # El clima y el calendario llegan hasta el límite de los datos aunque los viajes terminen antes.
+    last = max(last, weather["hour"].max())
     last = min(last, DATA_END - pd.Timedelta(hours=1))
     hours = pd.DataFrame({"hour": pd.date_range(first, last, freq="h")}).merge(weather, on="hour", how="left")
 
@@ -349,6 +351,10 @@ def build_station_hour(trips: pd.DataFrame, stations: pd.DataFrame, hours: pd.Da
     first = hour_index.get_indexer(stations["first_trip"].dt.normalize())
     last = hour_index.get_indexer(stations["last_trip"].dt.normalize() + pd.Timedelta(hours=23))
     last = np.where(last < 0, len(hour_index) - 1, last)
+    # Ninguna estación se completa más allá del último día con viajes: si no, las horas posteriores
+    # quedarían como horas sin movimiento cuando en realidad no hay datos.
+    final = hour_index.get_indexer([trips["started_at"].max().normalize() + pd.Timedelta(hours=23)])[0]
+    last = np.minimum(last, final)
     pieces = []
     for row, station_id in enumerate(station_ids):
         span = slice(first[row], last[row] + 1)

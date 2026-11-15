@@ -199,8 +199,8 @@ def show_check(prediction: pd.DataFrame, day: pd.Timestamp) -> None:
     """Compara la predicción con lo que pasó, cuando el día está dentro de los datos."""
     actual = load_actual(day)
     if actual.empty:
-        st.info("Este día es posterior a los datos disponibles (hasta el 30 de septiembre de 2026), "
-                "así que no hay con qué comparar. Elegí un día anterior para ver cómo le fue al modelo.")
+        st.info("Para este día no hay viajes publicados, así que no hay con qué comparar. "
+                "Elegí un día anterior para ver cómo le fue al modelo.")
         return
     real = actual.groupby(actual["hour"].dt.hour)["departures"].sum()
     predicted = prediction.groupby("hour_of_day")["departures"].sum()

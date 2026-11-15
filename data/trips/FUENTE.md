@@ -12,7 +12,7 @@
 
 ## Archivos
 
-Un CSV por año, de `trips_2010.csv` a `trips_2026.csv` (2026 llega hasta el 30 de septiembre). Cada fila es un viaje: fecha y estación de origen, fecha y estación de destino, duración, usuario y, desde 2019, modelo de bicicleta.
+Un CSV por año, de `trips_2010.csv` a `trips_2026.csv` (2026 llega hasta el 30 de septiembre: al 14 de noviembre de 2026 el portal no había publicado octubre). Cada fila es un viaje: fecha y estación de origen, fecha y estación de destino, duración, usuario y, desde 2019, modelo de bicicleta.
 
 Los archivos `trips.partNNN.rar` son los mismos CSV comprimidos y partidos en volúmenes; los CSV no se versionan (ver `.gitignore`).
 
