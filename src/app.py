@@ -137,7 +137,9 @@ def show_map(plan: pd.DataFrame) -> None:
                     traceorder="reversed", itemsizing="constant"),
         **basemap.layout(),
     )
-    st.plotly_chart(figure, width="stretch", config={"scrollZoom": True})
+    # Acá la rueda acerca siempre: el mapa es el centro de la pestaña y Streamlit no deja agregarle
+    # el código que la activa con un clic.
+    st.plotly_chart(figure, width="stretch", config=basemap.CONFIG)
     st.caption(f"El tamaño de cada punto es la cantidad de viajes previstos. {basemap.ATTRIBUTION}.")
 
 

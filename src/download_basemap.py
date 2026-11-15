@@ -7,7 +7,7 @@ Guarda data/basemap/caba.jpg y data/basemap/caba.json (los límites de la imagen
 latitud). El reporte incrusta esa imagen debajo de las estaciones, así el mapa se ve sin conexión
 y sin depender de WebGL.
 
-El mapa base es el de OpenStreetMap. Se descarga una sola vez (son 42 teselas) y se aclara y se
+El mapa base es el de OpenStreetMap. Se descarga una sola vez (son 132 teselas) y se aclara y se
 pasa a grises, para que las calles sirvan de referencia sin competir con los datos.
 """
 
@@ -26,7 +26,10 @@ TILE_URL = "https://tile.openstreetmap.org/{zoom}/{x}/{y}.png"
 USER_AGENT = "tp-ciencia-de-datos/1.0 (descarga unica de un mapa base)"
 # Cuánto se aclara el mapa: 0 lo deja igual, 1 lo deja blanco.
 FADE = 0.45
-ZOOM = 13
+# Con el 13 la imagen se pixela apenas se acerca el mapa al doble; el 14 aguanta unas cuatro veces y
+# muestra las calles chicas. El 15 cuadruplicaría las teselas y el peso, y la política de uso de
+# OpenStreetMap pide no hacer descargas grandes.
+ZOOM = 14
 TILE_SIZE = 256
 # Rectángulo que contiene a la Ciudad (oeste, sur, este, norte).
 BOUNDS = (-58.54, -34.71, -58.33, -34.52)
@@ -73,7 +76,7 @@ def main() -> int:
             with urllib.request.urlopen(request, timeout=30) as response:
                 tile = Image.open(io.BytesIO(response.read())).convert("RGB")
             image.paste(tile, ((x - left) * TILE_SIZE, (y - top) * TILE_SIZE))
-            time.sleep(0.2)  # sin apuro: es un servicio gratuito sostenido por donaciones
+            time.sleep(0.5)  # sin apuro: es un servicio gratuito sostenido por donaciones
 
     # En grises y aclarado: el mapa base es contexto, no dato.
     gray = image.convert("L")

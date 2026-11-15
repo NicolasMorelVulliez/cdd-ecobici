@@ -19,6 +19,32 @@ LAT_RANGE = (-34.70, -34.525)
 
 ATTRIBUTION = "Mapa base: © colaboradores de OpenStreetMap"
 
+# Configuración de Plotly para los mapas (el tercer argumento de Plotly.newPlot). Los ejes cartesianos
+# no acercan con la rueda salvo que se pida; la barra queda siempre visible porque es la única forma
+# de acercar en una pantalla táctil, y el doble clic vuelve siempre al encuadre inicial.
+CONFIG = dict(scrollZoom=True, displayModeBar=True, displaylogo=False, doubleClick="reset", responsive=True)
+
+# Botones que no sirven en un mapa: el ajuste automático lo encuadra según las estaciones y deforma
+# el encuadre inicial, los de selección no hacen nada en estos gráficos y el de compartir manda los
+# datos a un servicio externo.
+_REMOVED_BUTTONS = ["autoScale2d", "zoom2d", "pan2d", "select2d", "lasso2d", "toImage", "sendChartToCloud"]
+
+ZOOM_SCRIPT = Path(__file__).resolve().parent / "map_zoom.js"
+
+
+def zoom_script() -> str:
+    """Devuelve el código JavaScript que define ``enableMapZoom(gd)``.
+
+    Hay que llamarla después de dibujar el mapa con ``CONFIG``: hace que la rueda acerque recién al
+    hacer clic en el mapa, para no atrapar el desplazamiento de la página, y pasa la barra a español.
+    """
+    return ZOOM_SCRIPT.read_text(encoding="utf-8")
+
+
+def post_script() -> str:
+    """Devuelve el código para el parámetro ``post_script`` de ``write_html``."""
+    return zoom_script() + "\nenableMapZoom(document.getElementById('{plot_id}'));"
+
 
 @lru_cache(maxsize=1)
 def _image() -> tuple[str, dict]:
@@ -37,7 +63,11 @@ def layout(lon_range: tuple = LON_RANGE, lat_range: tuple = LAT_RANGE) -> dict:
     Los ejes quedan ocultos y con la proporción correcta: a la latitud de Buenos Aires un grado de
     longitud mide menos que uno de latitud, así que el eje vertical se estira en esa proporción.
     La imagen está en proyección Mercator y los ejes son lineales, pero en una ciudad de 20 km la
-    diferencia es de centésimas de píxel.
+    diferencia es de a lo sumo un píxel de la imagen, que no se nota ni acercando. Al acercar se
+    mantiene la proporción porque el eje vertical está atado al horizontal.
+
+    Para que se pueda acercar hay que dibujarlo con ``CONFIG`` (y, en una página HTML propia,
+    llamar a ``enableMapZoom`` de ``zoom_script()``).
 
     :param lon_range: longitudes mínima y máxima a mostrar.
     :param lat_range: latitudes mínima y máxima a mostrar.
@@ -55,4 +85,9 @@ def layout(lon_range: tuple = LON_RANGE, lat_range: tuple = LAT_RANGE) -> dict:
         yaxis=dict(range=list(lat_range), visible=False, scaleanchor="x", scaleratio=1 / math.cos(middle),
                    constrain="domain"),
         plot_bgcolor="white", dragmode="pan",
+        modebar=dict(remove=_REMOVED_BUTTONS, orientation="v", bgcolor="rgba(255, 255, 255, 0.85)"),
+        # Con un valor fijo, si una página vuelve a dibujar el mapa con Plotly.react (por ejemplo al
+        # cambiar un control) se conserva el acercamiento que eligió quien lo mira. Streamlit, en
+        # cambio, arma un gráfico nuevo y vuelve al encuadre inicial.
+        uirevision="map",
     )

@@ -41,14 +41,15 @@ RAIN_LABELS = ["Sin lluvia", "Hasta 0,5 mm", "0,5 a 2 mm", "2 a 5 mm", "Más de 
 LAYOUT = dict(template="plotly_white", font=dict(size=20), title_font=dict(size=26), margin=dict(t=90))
 
 
-def save(figure: go.Figure, name: str) -> None:
+def save(figure: go.Figure, name: str, **options) -> None:
     """Guarda un gráfico como HTML sin dependencias de red.
 
     :param figure: gráfico a guardar.
     :param name: nombre del archivo, sin extensión.
+    :param options: parámetros adicionales de ``write_html``, como la configuración de un mapa.
     """
     figure.update_layout(**LAYOUT)
-    figure.write_html(OUTPUT / f"{name}.html", include_plotlyjs="directory")
+    figure.write_html(OUTPUT / f"{name}.html", include_plotlyjs="directory", **options)
 
 
 def load_system_hours(station_hour: pd.DataFrame, hours: pd.DataFrame) -> pd.DataFrame:
@@ -254,7 +255,7 @@ def station_roles(station_hour: pd.DataFrame, hours: pd.DataFrame, stations: pd.
     figure.update_traces(marker=dict(line=dict(color="white", width=1)))
     # El mapa de fondo es una imagen guardada, así el gráfico se ve sin conexión.
     figure.update_layout(**basemap.layout())
-    save(figure, "05_mapa_flujo_manana")
+    save(figure, "05_mapa_flujo_manana", config=basemap.CONFIG, post_script=basemap.post_script())
 
     # Vaivén del stock: cuánto sube y baja la cantidad de bicicletas de una estación en un día,
     # reconstruido como el acumulado de llegadas menos salidas.
