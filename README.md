@@ -112,6 +112,7 @@ data/
   conicet/      estaciones y ciclovías de 2019
   road/         red de ciclovías
   transit/      estaciones de subte, tren, premetro y Metrobus
+  basemap/      imagen del mapa de la Ciudad que va de fondo en los mapas
   processed/    tablas de trabajo (se generan)
 src/            código
 models/         modelos entrenados (se generan)
@@ -127,12 +128,14 @@ formato.
 |---|---|
 | `run_all.py` | Ejecuta todo en un solo paso |
 | `download_weather.py` | Baja el clima horario |
+| `download_basemap.py` | Baja el mapa base de OpenStreetMap y lo guarda como imagen. No hace falta correrlo: la imagen ya está en el repositorio |
 | `build_dataset.py` | Unifica los recorridos de 2022 a 2026 y arma las tablas de viajes, estaciones, horas y estación por hora |
 | `eda.py` | Análisis exploratorio y sus gráficos |
 | `cluster_stations.py` | Agrupa las estaciones en cinco tipos con K-means |
 | `train_demand.py` | Entrena y evalúa los modelos de salidas y llegadas por estación y hora |
 | `compare_models.py` | Compara regresión lineal, árbol de decisión, random forest, red neuronal y gradient boosting |
 | `forecast.py` | Predice un día completo y calcula el stock recomendado de cada estación |
+| `basemap.py` | Pone el mapa de la Ciudad de fondo en los gráficos |
 | `app.py` | Aplicación en Streamlit |
 | `build_report.py` | Arma el reporte general a partir de `report_template.html` |
 | `capture_station_status.py` | Captura el estado en vivo de las estaciones. No se usa en el trabajo |
@@ -151,3 +154,4 @@ calendario llegan hasta el 31 de octubre de 2026.
 | Estaciones actuales y capacidad | [Feed GBFS de BA Ecobici](https://buenosaires.publicbikesystem.net/customer/gbfs/v2/gbfs.json) | — |
 | Ecobici 2010–2019 | [CONICET Digital](https://ri.conicet.gov.ar/items/0d38d154-0a4c-4d9b-8863-05cbffc2134c), Gutiérrez y Mené | Ver `data/conicet/FUENTE.md` |
 | Feriados | argentina.gob.ar, ArgentinaDatos y nolaborables | Ver `data/holidays/FUENTE.md` |
+| Mapa base | [OpenStreetMap](https://www.openstreetmap.org) | ODbL (© colaboradores de OpenStreetMap) |

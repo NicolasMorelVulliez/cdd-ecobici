@@ -16,6 +16,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+import basemap
 import forecast
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,8 +32,6 @@ STATUS_COLORS = {
     "Arrancar a media carga": "#aab7b8",
     "Sin capacidad conocida": "#e5e8e8",
 }
-# Centro de la Ciudad, para encuadrar el mapa.
-MAP_CENTER = {"lat": -34.607, "lon": -58.44}
 DAY_NAMES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
 
@@ -110,28 +109,36 @@ def build_weather(resources: forecast.Resources, day: pd.Timestamp) -> tuple[pd.
 
 
 def show_map(plan: pd.DataFrame) -> None:
-    """Dibuja las estaciones sobre la red de ciclovías, coloreadas por cómo conviene dejarlas."""
-    online = st.checkbox("Mostrar calles (necesita conexión)", value=False)
+    """Dibuja las estaciones sobre el mapa de la Ciudad, coloreadas por cómo conviene dejarlas."""
+    with_lanes = st.checkbox("Mostrar ciclovías", value=True)
     shown = plan.dropna(subset=["lon", "lat"]).copy()
     shown["Dejar con"] = shown["target_stock"].map(lambda value: "—" if pd.isna(value) else f"{value:.0f} bicicletas")
-    figure = px.scatter_map(
-        shown, lat="lat", lon="lon", color="status", size="trips", size_max=22,
+    figure = px.scatter(
+        shown, x="lon", y="lat", color="status", size="trips", size_max=15,
         color_discrete_map=STATUS_COLORS, category_orders={"status": list(STATUS_COLORS)},
         hover_name="name",
         hover_data={"Dejar con": True, "capacity": True, "cluster_name": True, "trips": ":.0f",
                     "status": False, "lat": False, "lon": False},
         labels={"status": "Cómo dejarla", "capacity": "Capacidad", "cluster_name": "Tipo", "trips": "Viajes previstos"},
-        zoom=11.4, center=MAP_CENTER, height=720, map_style="carto-positron" if online else "white-bg",
+        height=760,
     )
-    lons, lats = load_bike_lanes()
-    lanes = go.Scattermap(lon=lons, lat=lats, mode="lines", line=dict(color="#b2babb", width=1.5),
-                          name="Ciclovías", hoverinfo="skip")
-    figure.add_trace(lanes)
-    # Las ciclovías van al fondo para que no tapen las estaciones.
-    figure.data = (figure.data[-1],) + figure.data[:-1]
-    figure.update_layout(margin=dict(l=0, r=0, t=0, b=0), legend=dict(font=dict(size=15), title_font=dict(size=15)))
-    st.plotly_chart(figure, width="stretch")
-    st.caption("El tamaño de cada punto es la cantidad de viajes previstos. Las líneas grises son las ciclovías.")
+    figure.update_traces(marker=dict(line=dict(color="white", width=1), opacity=0.92))
+    # Las estaciones que no piden nada se dibujan primero, para que no tapen a las que hay que preparar.
+    figure.data = figure.data[::-1]
+    if with_lanes:
+        lons, lats = load_bike_lanes()
+        figure.add_scatter(x=lons, y=lats, mode="lines", line=dict(color="#1baf7a", width=1), opacity=0.6,
+                           name="Ciclovías", hoverinfo="skip")
+        # Las ciclovías van al fondo para que no tapen las estaciones.
+        figure.data = (figure.data[-1],) + figure.data[:-1]
+    figure.update_layout(
+        margin=dict(l=0, r=0, t=40, b=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0, title_text="", font=dict(size=14),
+                    traceorder="reversed", itemsizing="constant"),
+        **basemap.layout(),
+    )
+    st.plotly_chart(figure, width="stretch", config={"scrollZoom": True})
+    st.caption(f"El tamaño de cada punto es la cantidad de viajes previstos. {basemap.ATTRIBUTION}.")
 
 
 def show_plan(plan: pd.DataFrame, day: pd.Timestamp) -> None:

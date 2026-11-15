@@ -15,6 +15,7 @@ scikit-learn==1.9.1
 # Visualización y aplicación
 plotly==7.1.0
 streamlit==1.67.0
+pillow==13.0.0           # arma la imagen del mapa base
 
 # Notebooks en VS Code o Jupyter
 ipykernel==7.4.0

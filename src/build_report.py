@@ -27,6 +27,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
+import basemap
 import cluster_stations
 import eda
 import forecast
@@ -45,7 +46,6 @@ DIVERGING = [[0, ORANGE], [0.5, "#e6e5e1"], [1, BLUE]]
 
 MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre",
           "octubre", "noviembre", "diciembre"]
-MAP_CENTER = {"lat": -34.607, "lon": -58.44}
 
 SOURCES = [
     ("Recorridos de Ecobici", "Un viaje por fila: estación y hora de origen y destino", "Buenos Aires Data"),
@@ -55,6 +55,7 @@ SOURCES = [
     ("Ecobici 2010–2019", "Capacidad de estaciones que ya no existen y red de ciclovías de 2019", "CONICET Digital"),
     ("Ciclovías", "Red actual, para medir cuánta ciclovía rodea a cada estación", "Buenos Aires Data"),
     ("Subte, tren y Metrobus", "Distancia de cada estación al transporte masivo", "Buenos Aires Data"),
+    ("Mapa base", "Calles y barrios de fondo en los mapas", "OpenStreetMap"),
     ("Usuarios de Ecobici", "Edad y género. Se revisó y no se usa: los identificadores anteriores a 2020 se repiten",
      "Buenos Aires Data"),
 ]
@@ -240,22 +241,23 @@ def map_figure(roles: pd.DataFrame) -> dict:
         lons.append(None)
         lats.append(None)
     figure = go.Figure()
-    figure.add_trace(go.Scattermap(lon=lons, lat=lats, mode="lines", line=dict(color="#c9c8c3", width=1),
-                                   hoverinfo="skip", showlegend=False))
+    figure.add_scatter(x=lons, y=lats, mode="lines", line=dict(color=AQUA, width=1), opacity=0.6, hoverinfo="skip",
+                       name="Ciclovías")
     hover = [
         f"<b>{escape(station_label(row.name))}</b><br>"
         f"{decimal(row.net_morning, 1).replace('-', '−')} bicicletas de 6 a 11<br>{row.trips_per_day:.0f} viajes por día"
         for row in roles.itertuples()
     ]
-    figure.add_trace(go.Scattermap(
-        lon=roles["lon"], lat=roles["lat"], mode="markers", text=hover, hovertemplate="%{text}<extra></extra>",
+    figure.add_scatter(
+        x=roles["lon"], y=roles["lat"], mode="markers", text=hover, hovertemplate="%{text}<extra></extra>",
         showlegend=False,
         marker=dict(size=roles["trips_per_day"], sizemode="area", sizeref=2 * roles["trips_per_day"].max() / 26 ** 2,
-                    sizemin=4, color=roles["net_morning"], colorscale=DIVERGING, cmin=-8, cmax=8, opacity=0.9,
-                    colorbar=dict(title=dict(text="Bicicletas", side="top"), thickness=12, len=0.5, x=0.99, xanchor="right",
+                    sizemin=4, color=roles["net_morning"], colorscale=DIVERGING, cmin=-8, cmax=8, opacity=0.92,
+                    line=dict(color="white", width=1),
+                    colorbar=dict(title=dict(text="Bicicletas", side="top"), thickness=12, len=0.5, x=1.0, xanchor="left",
                                   y=0.5, tickvals=[-8, 0, 8], ticktext=["pierde 8", "0", "gana 8"])),
-    ))
-    return styled(figure, height=640, margin=dict(l=0, r=0, t=0, b=0), map=dict(style="white-bg", center=MAP_CENTER, zoom=11.2))
+    )
+    return styled(figure, height=700, margin=dict(l=0, r=90, t=28, b=0), **basemap.layout())
 
 
 def cluster_figure(profile: pd.DataFrame, clusters: pd.DataFrame) -> dict:

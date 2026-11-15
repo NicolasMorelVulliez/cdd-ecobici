@@ -22,7 +22,7 @@ ROOT = SRC.parent
 TRIPS = ROOT / "data" / "trips"
 WEATHER_FILE = ROOT / "data" / "weather" / "open_meteo_horario_2019_2026.csv"
 
-REQUIRED_PACKAGES = ["pandas", "pyarrow", "openpyxl", "geopandas", "sklearn", "plotly", "streamlit"]
+REQUIRED_PACKAGES = ["pandas", "pyarrow", "openpyxl", "geopandas", "sklearn", "plotly", "streamlit", "PIL"]
 # Archivos de recorridos que usa el trabajo. No están en el repositorio como CSV por su tamaño.
 REQUIRED_TRIPS = [
     "trips_2019.csv", "trips_2020.csv", "trips_2021.csv", "trips_2022.csv", "trips_2023.csv",

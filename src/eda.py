@@ -16,6 +16,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+import basemap
+
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 OUTPUT = ROOT / "reports" / "eda"
@@ -241,14 +243,17 @@ def station_roles(station_hour: pd.DataFrame, hours: pd.DataFrame, stations: pd.
     print(roles[["trips_per_day", "net_morning"] + surroundings].corr(method="spearman").loc[
         ["trips_per_day", "net_morning"], surroundings].round(2).to_string())
 
-    figure = px.scatter_map(
-        roles.reset_index(), lat="lat", lon="lon", color="net_morning", size="trips_per_day",
-        hover_name="name", hover_data={"capacity": True, "net_morning": ":.1f", "trips_per_day": ":.0f"},
-        color_continuous_scale="RdBu", color_continuous_midpoint=0, range_color=[-8, 8],
-        zoom=11.3, height=850, map_style="carto-positron",
+    figure = px.scatter(
+        roles.reset_index(), x="lon", y="lat", color="net_morning", size="trips_per_day", size_max=26,
+        hover_name="name", hover_data={"capacity": True, "net_morning": ":.1f", "trips_per_day": ":.0f",
+                                       "lon": False, "lat": False},
+        color_continuous_scale="RdBu", color_continuous_midpoint=0, range_color=[-8, 8], height=900,
         title="A la mañana las bicicletas van de las terminales y los barrios al centro y Puerto Madero",
         labels={"net_morning": "Bicicletas ganadas<br>de 6 a 11", "trips_per_day": "Viajes por día"},
     )
+    figure.update_traces(marker=dict(line=dict(color="white", width=1)))
+    # El mapa de fondo es una imagen guardada, así el gráfico se ve sin conexión.
+    figure.update_layout(**basemap.layout())
     save(figure, "05_mapa_flujo_manana")
 
     # Vaivén del stock: cuánto sube y baja la cantidad de bicicletas de una estación en un día,
