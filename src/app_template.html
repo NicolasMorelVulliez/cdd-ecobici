@@ -10,7 +10,7 @@
     --surface: #fcfcfb; --panel: #ffffff; --line: #e4e3df;
     --text: #0b0b0b; --text-2: #52514e; --text-3: #7c7b76;
     --blue: #2a78d6; --orange: #eb6834; --aqua: #1baf7a; --tint: #eef4fc;
-    --purple: #8e44ad; --gray: #b0afa9; --unknown: #d9d8d3;
+    --purple: #8e44ad; --yellow: #e0a800; --unknown: #3b3a37;
     --up: #1a7f4b; --down: #b8412a;
   }
   * { box-sizing: border-box; }
@@ -32,6 +32,7 @@
   input[type=range] { width: 100%; accent-color: var(--blue); margin: 4px 0 0; }
   .range-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .range-head output { font-variant-numeric: tabular-nums; font-weight: 650; color: var(--text); white-space: nowrap; }
+  .range-head output .delta { font-weight: 400; color: var(--text-3); font-size: 14px; }
   .range-scale { display: flex; justify-content: space-between; color: var(--text-3); font-size: 12px; }
   .check, .field > label.check { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer;
                                  color: var(--text); font-weight: 400; margin: 0; }
@@ -59,6 +60,26 @@
   .tile .note { color: var(--text-3); font-size: 13.5px; margin-top: 4px; }
   .tile .note.up { color: var(--up); }
   .tile .note.down { color: var(--down); }
+  .plan-note { color: var(--text-2); font-size: 15px; margin: 4px 0 0; padding: 8px 12px; background: var(--tint);
+               border-radius: 8px; }
+  button.filter-tile { font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%;
+                       transition: border-color .12s, box-shadow .12s; }
+  button.filter-tile:hover { border-color: #b9c9e0; }
+  button.filter-tile:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  button.filter-tile[aria-pressed=true] { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); background: var(--tint); }
+  .filter-banner { margin: -8px 0 14px; font-size: 14.5px; color: var(--text-2); }
+  .filter-banner button { font: inherit; color: var(--blue); background: none; border: 0; padding: 0; cursor: pointer;
+                          text-decoration: underline; margin-left: 6px; }
+  tr.filters th { background: #fbfbfa; border-bottom: 1px solid var(--line); padding: 6px 8px; top: var(--head-height, 37px); }
+  tr.filters input, tr.filters select { width: 100%; min-width: 70px; font: inherit; font-size: 13px; font-weight: 400;
+                                        padding: 4px 6px; border: 1px solid #c9c8c3; border-radius: 6px; background: #fff; }
+  /* Los desplegables necesitan lugar para el texto y la flecha: si no, el valor elegido queda tapado. */
+  tr.filters select { min-width: 150px; padding-right: 24px; text-overflow: ellipsis; }
+  tr.filters input[type=search] { min-width: 120px; }
+  tr.filters .range { display: flex; gap: 4px; }
+  tr.filters .range input { min-width: 48px; }
+  .link-button { font: inherit; font-size: 14px; color: var(--blue); background: none; border: 0; padding: 0;
+                 cursor: pointer; text-decoration: underline; }
 
   .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); margin: 8px 0 18px; }
   .tabs button { font: inherit; font-size: 15.5px; background: none; border: 0; border-bottom: 3px solid transparent;
@@ -149,19 +170,21 @@
         </div>
       </div>
       <div class="field">
-        <div class="range-head"><label for="in-shift">Temperatura respecto de lo normal del mes</label>
+        <div class="range-head"><label for="in-shift">Temperatura máxima (sensación térmica)</label>
           <output id="out-shift" for="in-shift"></output></div>
         <input type="range" id="in-shift" min="-10" max="10" step="1" value="0">
-        <div class="range-scale"><span>−10 °C</span><span>+10 °C</span></div>
+        <div class="range-scale"><span id="shift-low"></span><span id="shift-high"></span></div>
+        <p class="hint" id="shift-hint"></p>
       </div>
     </div>
 
     <div class="field">
-      <div class="range-head"><label for="in-margin">Bicicletas de resguardo por estación</label>
+      <div class="range-head"><label for="in-margin">Margen de seguridad (bicis extra por estación)</label>
         <output id="out-margin" for="in-margin"></output></div>
       <input type="range" id="in-margin" min="0" max="5" step="1">
       <div class="range-scale"><span>0</span><span>5</span></div>
-      <p class="hint">El modelo se equivoca en unas 2 bicicletas en el balance de una mañana.</p>
+      <p class="hint">Bicis de más que se dejan por si vienen más usuarios de los previstos. El modelo se equivoca en
+        unas 2 bicicletas en el balance de una mañana.</p>
     </div>
   </div>
 </aside>
@@ -170,14 +193,16 @@
   <p class="eyebrow">Ecobici · Plan de redistribución</p>
   <h1>¿Cómo dejar cada estación para mañana?</h1>
   <p class="lead" id="summary"></p>
+  <p class="plan-note" id="plan-note"></p>
   <div class="notice error" id="failure" hidden></div>
 
   <div class="tiles" id="indicators">
     <div class="tile"><div class="label">Viajes previstos</div><div class="value" id="out-trips">–</div><div class="note" id="out-trips-change"></div></div>
-    <div class="tile"><div class="label">Estaciones a dejar cargadas</div><div class="value" id="out-loaded">–</div></div>
-    <div class="tile"><div class="label">Estaciones a dejar con lugar</div><div class="value" id="out-room">–</div></div>
-    <div class="tile"><div class="label">Necesitan visita durante el día</div><div class="value" id="out-visit">–</div></div>
+    <button type="button" class="tile filter-tile" data-status="loaded" aria-pressed="false"><div class="label"><span class="dot" data-dot="loaded"></span>Estaciones a dejar cargadas</div><div class="value" id="out-loaded">–</div></button>
+    <button type="button" class="tile filter-tile" data-status="room" aria-pressed="false"><div class="label"><span class="dot" data-dot="room"></span>Estaciones a dejar con lugar</div><div class="value" id="out-room">–</div></button>
+    <button type="button" class="tile filter-tile" data-status="visit" aria-pressed="false"><div class="label"><span class="dot" data-dot="visit"></span>Estaciones a visitar durante el día</div><div class="value" id="out-visit">–</div></button>
   </div>
+  <p class="filter-banner" id="filter-banner" hidden></p>
 
   <div class="tabs" role="tablist" aria-label="Vistas">
     <button role="tab" id="tab-map" aria-controls="panel-map" aria-selected="true">Mapa</button>
@@ -196,10 +221,10 @@
   <section role="tabpanel" id="panel-plan" aria-labelledby="tab-plan" hidden>
     <div class="toolbar">
       <label class="check"><input type="checkbox" id="in-only-action" checked> Solo las que necesitan preparación</label>
-      <span class="count" id="plan-count"></span>
+      <span><span class="count" id="plan-count"></span> <button type="button" class="link-button" id="clear-filters" hidden>Limpiar filtros</button></span>
     </div>
     <div class="table-wrap tall"><table id="plan-table"><thead></thead><tbody></tbody></table></div>
-    <p class="caption">Tocá el título de una columna para ordenar por ella.</p>
+    <p class="caption">Tocá el título de una columna para ordenar por ella; debajo de cada título se puede filtrar.</p>
     <button class="primary" id="download">Descargar el plan (CSV)</button>
     <h3>Por zona</h3>
     <div class="table-wrap"><table id="zone-table"><thead></thead><tbody></tbody></table></div>
@@ -227,10 +252,12 @@
       <div class="tiles three">
         <div class="tile"><div class="label">Viajes reales</div><div class="value" id="out-real">–</div></div>
         <div class="tile"><div class="label">Viajes previstos por el modelo</div><div class="value" id="out-model">–</div><div class="note" id="out-model-change"></div></div>
-        <div class="tile"><div class="label">Lo habitual para ese tipo de día</div><div class="value" id="out-usual">–</div><div class="note" id="out-usual-change"></div></div>
+        <div class="tile"><div class="label" id="usual-label">Lo habitual para un día laborable</div><div class="value" id="out-usual">–</div><div class="note" id="out-usual-change"></div></div>
       </div>
       <div class="figure"><div class="plot" id="check-plot"></div></div>
-      <p class="caption">Para una comparación justa, elegí «Clima registrado ese día» en el panel lateral.</p>
+      <p class="caption">«Lo habitual» es el promedio de cada hora en los días laborables (o no laborables: fines de
+        semana y feriados) del último año, sin tener en cuenta el clima ni el mes. Para una comparación justa, elegí
+        «Clima registrado ese día» en el panel lateral.</p>
     </div>
   </section>
 
@@ -521,8 +548,12 @@ function createEngine(data) {
   const RAIN_SCENARIOS = [["Sin lluvia", 0], ["Llovizna", 0.3], ["Lluvia", 1.5], ["Lluvia fuerte", 4]];
   const STATUS_ORDER = [S.loaded, S.room, S.visit, S.half, S.unknown];
   const STATUS_COLORS = {
-    [S.loaded]: "#eb6834", [S.room]: "#2a78d6", [S.visit]: "#8e44ad", [S.half]: "#b0afa9", [S.unknown]: "#d9d8d3",
+    [S.loaded]: "#eb6834", [S.room]: "#2a78d6", [S.visit]: "#8e44ad", [S.half]: "#e0a800", [S.unknown]: "#3b3a37",
   };
+  // Recuadros de arriba que filtran mapa y tabla.
+  const FILTER_STATUS = {loaded: S.loaded, room: S.room, visit: S.visit};
+  const MONTH_NAMES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
+                       "noviembre", "diciembre"];
   const DAY_NAMES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
   const BLUE = "#2a78d6", ORANGE = "#eb6834", AQUA = "#1baf7a", INK = "#0b0b0b";
   const PLOT_CONFIG = {displaylogo: false, responsive: true, modeBarButtonsToRemove: ["select2d", "lasso2d", "autoScale2d"]};
@@ -554,6 +585,7 @@ function createEngine(data) {
   const state = {
     date: data.dates.default, holiday: false, source: "scenario", rain: 0, start: 7, end: 12, shift: 0,
     margin: data.safety_margin, tab: "map", lanes: true, onlyAction: true, sort: null, station: null, search: "",
+    statusFilter: null, filters: {},
   };
   let result = null;
   const dryCache = new Map();
@@ -607,6 +639,11 @@ function createEngine(data) {
     $("in-lanes").addEventListener("change", event => { state.lanes = event.target.checked; dirty.map = true; renderVisible(); });
     $("in-only-action").addEventListener("change", event => { state.onlyAction = event.target.checked; dirty.plan = true; renderVisible(); });
     $("download").addEventListener("click", downloadPlan);
+    $("clear-filters").addEventListener("click", clearColumnFilters);
+    document.querySelectorAll("[data-dot]").forEach(dot => { dot.style.background = STATUS_COLORS[FILTER_STATUS[dot.dataset.dot]]; });
+    document.querySelectorAll(".filter-tile").forEach(tile => tile.addEventListener("click", () => {
+      setStatusFilter(state.statusFilter === tile.dataset.status ? null : tile.dataset.status);
+    }));
     $("in-search").addEventListener("input", event => { state.search = event.target.value; fillStationList(); });
     $("in-station").addEventListener("change", event => { state.station = Number(event.target.value); renderStation(); });
 
@@ -636,10 +673,54 @@ function createEngine(data) {
     $("panel-" + name).querySelectorAll(".js-plotly-plot").forEach(plot => Plotly.Plots.resize(plot));
   }
 
+  // Un recuadro de arriba filtra el mapa y la tabla a un solo tipo de indicación; otro clic lo quita.
+  function setStatusFilter(key) {
+    state.statusFilter = key;
+    document.querySelectorAll(".filter-tile").forEach(tile => {
+      tile.setAttribute("aria-pressed", String(tile.dataset.status === key));
+    });
+    renderFilterBanner();
+    dirty.map = true; dirty.plan = true;
+    renderVisible();
+  }
+
+  function renderFilterBanner() {
+    const banner = $("filter-banner");
+    banner.hidden = !state.statusFilter;
+    if (!state.statusFilter || !result) return;
+    const status = FILTER_STATUS[state.statusFilter];
+    const amount = result.plan.filter(row => row.status === status).length;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Quitar filtro";
+    remove.addEventListener("click", () => setStatusFilter(null));
+    banner.replaceChildren("Mapa y plan muestran solo «" + status + "» (" + amount + (amount === 1 ? " estación)." : " estaciones)."), remove);
+  }
+
   // Los controles se mueven más rápido de lo que conviene recalcular: se calcula una vez por cuadro.
   let pending = false;
+  // El control de temperatura suma o resta grados al día típico del mes, pero muestra la temperatura que
+  // resulta: la máxima habitual es la hora más cálida del día típico seco del mes (mediana de cada hora).
+  function renderShift() {
+    const day = engine.parseDay(state.date);
+    const habitual = Math.round(Math.max(...engine.typicalWeather(day).apparent_temperature_c));
+    const signed = value => (value > 0 ? "+" : "−") + Math.abs(value) + " °C";
+    const output = $("out-shift");
+    output.replaceChildren((habitual + state.shift) + " °C");
+    if (state.shift) {
+      const delta = document.createElement("span");
+      delta.className = "delta";
+      delta.textContent = " (" + signed(state.shift) + ")";
+      output.append(delta);
+    }
+    $("shift-low").textContent = (habitual - 10) + " °C";
+    $("shift-high").textContent = (habitual + 10) + " °C";
+    $("shift-hint").textContent = "Habitual en " + MONTH_NAMES[day.month - 1] + ": " + habitual +
+      " °C. Movelo para simular un día más frío o más caluroso.";
+  }
+
   function schedule() {
-    $("out-shift").textContent = (state.shift > 0 ? "+" : state.shift < 0 ? "−" : "") + Math.abs(state.shift) + " °C";
+    renderShift();
     $("out-margin").textContent = state.margin + (state.margin === 1 ? " bicicleta" : " bicicletas");
     if (pending) return;
     pending = true;
@@ -668,17 +749,40 @@ function createEngine(data) {
     $("rain-hours").hidden = amount === 0;
     let description = label.toLowerCase();
     if (amount > 0) description += " de " + state.start + " a " + (state.end + 1) + " h";
-    if (state.shift) description += ", " + Math.abs(state.shift) + " °C " + (state.shift > 0 ? "más" : "menos") + " que lo normal";
+    if (state.shift) {
+      const habitual = Math.round(Math.max(...engine.typicalWeather(day).apparent_temperature_c));
+      description += ", máxima de " + (habitual + state.shift) + " °C (" + Math.abs(state.shift) + " °C " +
+        (state.shift > 0 ? "más" : "menos") + " que lo habitual)";
+    }
     return {weather: engine.scenarioWeather(day, amount, state.start, state.end, state.shift), description};
   }
 
   // ---- Cálculo
+  // Para una estación a visitar: a qué hora, arrancando con lo recomendado, se llenaría o se quedaría sin
+  // bicicletas, y qué hay que hacer. El stock de cada hora es el del final de esa hora, así que la visita
+  // tiene que ser antes de que empiece. Si con la predicción no llega a pasar del todo (la marcó el margen
+  // de seguridad), se usa el momento en que entra en el margen.
+  function visitText(prediction, row) {
+    const path = engine.stockPath(prediction, row.index, row.target_stock);
+    const find = slack => {
+      for (let position = 0; position < path.hour.length; position++) {
+        const stock = path.stock[position];
+        if (stock > row.capacity - slack) return {hour: path.hour[position], action: "retirar bicis"};
+        if (stock < slack) return {hour: path.hour[position], action: "llevar bicis"};
+      }
+      return null;
+    };
+    const found = find(0) || find(state.margin);
+    return found ? "Antes de las " + found.hour + " h: " + found.action : "Durante el día";
+  }
+
   function update() {
     try {
       const day = engine.parseDay(state.date);
       const {weather, description} = buildWeather(day);
       const prediction = engine.predictDay(day, weather, state.holiday);
       const plan = engine.planDay(prediction, state.margin);
+      plan.forEach(row => { row.visit = row.status === S.visit ? visitText(prediction, row) : null; });
       const dryKey = state.date + "|" + state.holiday;
       if (!dryCache.has(dryKey)) {
         const dry = engine.predictDay(day, engine.typicalWeather(day), state.holiday);
@@ -724,6 +828,10 @@ function createEngine(data) {
     $("out-loaded").textContent = counts[S.loaded] || 0;
     $("out-room").textContent = counts[S.room] || 0;
     $("out-visit").textContent = counts[S.visit] || 0;
+    $("plan-note").textContent = "Las cantidades son el stock con el que conviene dejar cada estación al inicio del día, " +
+      "a las " + engine.START_HOUR + " h, antes de que arranque la operación. Durante el día no se repone, salvo en las " +
+      "estaciones a visitar, que indican a qué hora hace falta pasar.";
+    renderFilterBanner();
   }
 
   // Con responsive, Plotly ocupa el 100% del alto del contenedor: si el contenedor no tiene alto
@@ -746,8 +854,10 @@ function createEngine(data) {
       traces.push({type: "scatter", x: LANES.lon, y: LANES.lat, mode: "lines", name: "Ciclovías",
                    line: {color: AQUA, width: 1}, opacity: 0.6, hoverinfo: "skip"});
     }
-    const shown = result.plan.filter(row => known(row.lon) && known(row.lat));
-    const largest = Math.max(...shown.map(row => row.trips));
+    const located = result.plan.filter(row => known(row.lon) && known(row.lat));
+    // El tamaño de los puntos se calcula con todas las estaciones, para que no cambie al filtrar.
+    const largest = Math.max(...located.map(row => row.trips));
+    const shown = state.statusFilter ? located.filter(row => row.status === FILTER_STATUS[state.statusFilter]) : located;
     // Las estaciones que no piden nada se dibujan primero, para que no tapen a las que hay que preparar.
     for (const status of [...STATUS_ORDER].reverse()) {
       const rows = shown.filter(row => row.status === status);
@@ -757,10 +867,11 @@ function createEngine(data) {
         customdata: rows.map(row => [
           escapeHtml(row.name), known(row.target_stock) ? formatInteger(row.target_stock) + " bicicletas" : "—",
           known(row.capacity) ? row.capacity : "—", known(row.cluster_name) ? escapeHtml(row.cluster_name) : "Sin clasificar",
-          formatInteger(row.trips),
+          formatInteger(row.trips), row.visit ? "<br><b>Visitar: " + escapeHtml(row.visit) + "</b>" : "",
         ]),
-        hovertemplate: "<b>%{customdata[0]}</b><br>Dejar con: %{customdata[1]}<br>Capacidad: %{customdata[2]}" +
-                       "<br>Tipo: %{customdata[3]}<br>Viajes previstos: %{customdata[4]}<extra>" + status + "</extra>",
+        hovertemplate: "<b>%{customdata[0]}</b><br>Dejar a las " + engine.START_HOUR + " h con: %{customdata[1]}" +
+                       "<br>Capacidad: %{customdata[2]}<br>Tipo: %{customdata[3]}<br>Viajes previstos: %{customdata[4]}" +
+                       "%{customdata[5]}<extra>" + status + "</extra>",
         marker: {color: STATUS_COLORS[status], size: rows.map(row => row.trips), sizemode: "area",
                  sizeref: 2 * largest / (15 * 15), sizemin: 3, opacity: 0.92, line: {color: "white", width: 1}},
       });
@@ -775,15 +886,45 @@ function createEngine(data) {
   // ---- Plan de redistribución
   const PLAN_COLUMNS = [
     {key: "name", label: "Estación"}, {key: "zone", label: "Zona"}, {key: "cluster_name", label: "Tipo"},
-    {key: "status", label: "Indicación"}, {key: "capacity", label: "Capacidad", number: true},
+    {key: "status", label: "Indicación"}, {key: "visit", label: "Visita durante el día"},
+    {key: "capacity", label: "Capacidad", number: true},
     {key: "target_stock", label: "Dejar con", number: true}, {key: "bikes_needed", label: "Bicicletas mínimas", number: true},
     {key: "docks_needed", label: "Anclajes libres mínimos", number: true}, {key: "trips", label: "Viajes previstos", number: true},
   ];
+  // Tipo de filtro de cada columna: lista para las que tienen pocos valores, texto para el resto y
+  // mínimo y máximo para las numéricas.
+  const LIST_FILTERS = new Set(["zone", "cluster_name", "status"]);
+  const plainText = text => String(text).toLocaleLowerCase("es").normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+  function passesFilters(row) {
+    return PLAN_COLUMNS.every(column => {
+      const filter = state.filters[column.key];
+      if (!filter) return true;
+      const value = row[column.key];
+      if (column.number) {
+        const [low, high] = filter;
+        if (low === "" && high === "") return true;
+        if (!known(value)) return false;
+        const shownValue = engine.roundHalfEven(value);
+        return (low === "" || shownValue >= Number(low)) && (high === "" || shownValue <= Number(high));
+      }
+      if (LIST_FILTERS.has(column.key)) return filter === "" || String(value) === filter;
+      const words = plainText(filter).split(/\s+/).filter(Boolean);
+      const text = known(value) ? plainText(value) : "";
+      return words.every(word => text.includes(word));
+    });
+  }
+
+  const anyColumnFilter = () => Object.values(state.filters).some(filter =>
+    Array.isArray(filter) ? filter.some(value => value !== "") : Boolean(filter));
 
   function planRows() {
     const order = Object.fromEntries(STATUS_ORDER.map((status, position) => [status, position]));
     let rows = [...result.plan].sort((a, b) => order[a.status] - order[b.status] || b.trips - a.trips);
-    if (state.onlyAction) rows = rows.filter(row => order[row.status] < 3);
+    // El recuadro elegido arriba manda sobre la casilla «Solo las que necesitan preparación».
+    if (state.statusFilter) rows = rows.filter(row => row.status === FILTER_STATUS[state.statusFilter]);
+    else if (state.onlyAction) rows = rows.filter(row => order[row.status] < 3);
+    rows = rows.filter(passesFilters);
     if (state.sort) {
       const {key, descending} = state.sort;
       const column = PLAN_COLUMNS.find(item => item.key === key);
@@ -804,9 +945,59 @@ function createEngine(data) {
     return column.number ? formatInteger(value) : String(value);
   }
 
+  // Fila de filtros debajo de los títulos. Se arma una sola vez, para que al escribir no se pierda el foco.
+  let filterRow = null;
+  function buildFilterRow() {
+    filterRow = document.createElement("tr");
+    filterRow.className = "filters";
+    PLAN_COLUMNS.forEach(column => {
+      const cell = document.createElement("th");
+      const label = "Filtrar " + column.label.toLocaleLowerCase("es");
+      if (column.number) {
+        const box = document.createElement("div");
+        box.className = "range";
+        ["mín.", "máx."].forEach((placeholder, side) => {
+          const input = document.createElement("input");
+          input.type = "number"; input.inputMode = "numeric"; input.placeholder = placeholder;
+          input.setAttribute("aria-label", label + " (" + (side ? "máximo" : "mínimo") + ")");
+          input.addEventListener("input", () => {
+            const filter = state.filters[column.key] || ["", ""];
+            filter[side] = input.value;
+            state.filters[column.key] = filter;
+            renderPlanBody();
+          });
+          box.append(input);
+        });
+        cell.append(box);
+      } else if (LIST_FILTERS.has(column.key)) {
+        const select = document.createElement("select");
+        select.setAttribute("aria-label", label);
+        const values = column.key === "status" ? STATUS_ORDER
+          : [...new Set(result.plan.map(row => row[column.key]).filter(known))].sort((a, b) => String(a).localeCompare(String(b), "es"));
+        select.add(new Option("Todas", ""));
+        values.forEach(value => select.add(new Option(value, value)));
+        select.addEventListener("change", () => { state.filters[column.key] = select.value; renderPlanBody(); });
+        cell.append(select);
+      } else {
+        const input = document.createElement("input");
+        input.type = "search"; input.placeholder = "Buscar";
+        input.setAttribute("aria-label", label);
+        input.addEventListener("input", () => { state.filters[column.key] = input.value; renderPlanBody(); });
+        cell.append(input);
+      }
+      filterRow.append(cell);
+    });
+  }
+
+  function clearColumnFilters() {
+    state.filters = {};
+    if (filterRow) filterRow.querySelectorAll("input, select").forEach(control => { control.value = ""; });
+    renderPlanBody();
+  }
+
   function renderPlan() {
-    const rows = planRows();
     const table = $("plan-table");
+    if (!filterRow) buildFilterRow();
     const head = document.createElement("tr");
     PLAN_COLUMNS.forEach(column => {
       const cell = document.createElement("th");
@@ -829,8 +1020,17 @@ function createEngine(data) {
       cell.append(button);
       head.append(cell);
     });
-    table.tHead.replaceChildren(head);
+    if (filterRow.parentNode) filterRow.before(head);
+    else table.tHead.append(head, filterRow);
+    [...table.tHead.rows].filter(line => line !== head && line !== filterRow).forEach(line => line.remove());
+    // La fila de filtros queda fija debajo de la de títulos al bajar por la tabla.
+    table.style.setProperty("--head-height", head.offsetHeight + "px");
+    renderPlanBody();
+  }
 
+  function renderPlanBody() {
+    const rows = planRows();
+    const table = $("plan-table");
     const body = document.createDocumentFragment();
     rows.forEach(row => {
       const line = document.createElement("tr");
@@ -852,6 +1052,7 @@ function createEngine(data) {
     });
     table.tBodies[0].replaceChildren(body);
     $("plan-count").textContent = rows.length === 1 ? "1 estación" : formatInteger(rows.length) + " estaciones";
+    $("clear-filters").hidden = !anyColumnFilter();
     renderZones();
   }
 
@@ -947,7 +1148,7 @@ function createEngine(data) {
     $("out-type").textContent = known(row.cluster_name) ? row.cluster_name : "Sin clasificar";
     $("out-capacity").textContent = formatInteger(row.capacity) + " anclajes";
     $("out-target").textContent = formatInteger(row.target_stock) + " bicicletas";
-    $("out-status").textContent = row.status;
+    $("out-status").textContent = row.status + (row.visit ? ". Visitar: " + row.visit.charAt(0).toLocaleLowerCase("es") + row.visit.slice(1) : "");
 
     const traces = [
       {type: "bar", x: path.hour, y: path.arrivals, name: "Llegadas previstas", marker: {color: BLUE},
@@ -989,6 +1190,8 @@ function createEngine(data) {
     $("out-real").textContent = formatInteger(realTotal);
     $("out-model").textContent = formatInteger(predictedTotal);
     $("out-model-change").textContent = signedPercent(predictedTotal / realTotal - 1) + " respecto de lo real";
+    const dayKind = result.prediction.workday ? "laborable" : "no laborable";
+    $("usual-label").textContent = "Lo habitual para un día " + dayKind;
     $("out-usual").textContent = formatInteger(usualTotal);
     $("out-usual-change").textContent = signedPercent(usualTotal / realTotal - 1) + " respecto de lo real";
 
@@ -997,8 +1200,8 @@ function createEngine(data) {
        hovertemplate: "%{y:,.0f} viajes<extra>Real</extra>"},
       {type: "scatter", x: hours, y: predicted, name: "Modelo", mode: "lines", line: {color: BLUE, width: 3},
        hovertemplate: "%{y:,.0f} viajes<extra>Modelo</extra>"},
-      {type: "scatter", x: hours, y: usual, name: "Lo habitual", mode: "lines", line: {color: "#a9a8a2", width: 3, dash: "dash"},
-       hovertemplate: "%{y:,.0f} viajes<extra>Lo habitual</extra>"},
+      {type: "scatter", x: hours, y: usual, name: "Lo habitual (" + dayKind + ")", mode: "lines",
+       line: {color: "#a9a8a2", width: 3, dash: "dash"}, hovertemplate: "%{y:,.0f} viajes<extra>Lo habitual</extra>"},
     ];
     draw("check-plot", traces, data.layouts.check, PLOT_CONFIG);
   }
