@@ -92,6 +92,23 @@
   .plot { width: 100%; }
   .caption { color: var(--text-3); font-size: 14px; margin: 6px 4px 10px; }
   .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin: 4px 0 10px; }
+  .segmented { display: inline-flex; max-width: 100%; border: 1px solid #c9c8c3; border-radius: 8px; overflow: hidden;
+               background: #fff; }
+  .segmented label { position: relative; cursor: pointer; flex: 1 1 auto; min-width: 0; }
+  .segmented input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .segmented span { display: block; height: 100%; padding: 7px 14px; font-size: 14.5px; color: var(--text-2);
+                    text-align: center; }
+  .segmented label + label span { border-left: 1px solid #c9c8c3; }
+  .segmented input:checked + span { background: var(--tint); color: var(--blue); font-weight: 600; }
+  .segmented input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: -2px; }
+  .player { display: flex; align-items: center; gap: 12px; margin: 6px 0 2px; }
+  .player button { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border: 0; border-radius: 50%;
+                   background: var(--blue); color: #fff; cursor: pointer; }
+  .player button:hover { background: #1f66bd; }
+  .player button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .player input[type=range] { flex: 1; min-width: 0; margin: 0; }
+  .player output { min-width: 4.6em; text-align: right; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .map-status { color: var(--text-2); font-size: 14.5px; margin: 4px 0 0; }
   .notice { background: var(--tint); border-left: 4px solid var(--blue); padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 14px 0; }
   .error { background: #fdf0ec; border-left-color: var(--down); }
 
@@ -212,10 +229,29 @@
   </div>
 
   <section role="tabpanel" id="panel-map" aria-labelledby="tab-map">
-    <label class="check"><input type="checkbox" id="in-lanes" checked> Mostrar ciclovías</label>
+    <div class="toolbar">
+      <div class="segmented" role="radiogroup" aria-label="Qué muestra el mapa">
+        <label><input type="radio" name="map-view" value="plan" checked><span>Cómo dejar cada estación</span></label>
+        <label><input type="radio" name="map-view" value="day"><span>El día hora por hora</span></label>
+      </div>
+      <label class="check"><input type="checkbox" id="in-lanes" checked> Mostrar ciclovías</label>
+    </div>
+    <div class="player" id="map-player" hidden>
+      <button type="button" id="map-play" aria-label="Reproducir el día">
+        <svg id="map-play-icon" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M4.5 2.5v11l9-5.5z" fill="currentColor"/></svg>
+        <svg id="map-pause-icon" viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" hidden><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z" fill="currentColor"/></svg>
+      </button>
+      <input type="range" id="map-time" step="0.25" aria-label="Hora del día">
+      <output id="map-time-label" for="map-time"></output>
+    </div>
+    <p class="map-status" id="map-status" hidden></p>
     <div class="figure"><div class="plot" id="map-plot"></div></div>
-    <p class="caption">El tamaño de cada punto es la cantidad de viajes previstos. Para acercar, usá los botones o hacé
-      clic en el mapa y girá la rueda; se mueve arrastrando y con doble clic vuelve al encuadre inicial. {{attribution}}.
+    <p class="caption"><span id="caption-plan">El tamaño de cada punto es la cantidad de viajes previstos; los anillos
+      violetas marcan las estaciones que necesitan una visita durante el día.</span><span id="caption-day" hidden>Cada
+      estación arranca con lo que indica el plan y nadie la repone. El color muestra qué tan llena está y el tamaño,
+      cuántas bicicletas salen y llegan en esa hora; un anillo marca la que se está quedando sin bicicletas (naranja)
+      o sin lugar (azul), es decir, la que entró en el margen de seguridad.</span> Para acercar, usá los botones o hacé clic en el mapa y girá la rueda; se mueve arrastrando y
+      con doble clic vuelve al encuadre inicial. {{attribution}}.
       <span id="map-offline" hidden>No se pudo cargar el mapa en línea (hace falta conexión), así que se muestra una
       imagen guardada, que pierde nitidez al acercar mucho.</span></p>
   </section>
@@ -588,7 +624,7 @@ function createEngine(data) {
   const state = {
     date: data.dates.default, holiday: false, source: "scenario", rain: 0, start: 7, end: 12, shift: 0,
     margin: data.safety_margin, tab: "map", lanes: true, onlyAction: true, sort: null, station: null, search: "",
-    statusFilter: null, filters: {},
+    statusFilter: null, filters: {}, mapView: "plan", mapTime: data.start_hour,
   };
   let result = null;
   const dryCache = new Map();
@@ -640,6 +676,7 @@ function createEngine(data) {
     $("in-margin").addEventListener("input", event => { state.margin = Number(event.target.value); schedule(); });
 
     $("in-lanes").addEventListener("change", event => { state.lanes = event.target.checked; dirty.map = true; renderVisible(); });
+    setupMapControls();
     $("in-only-action").addEventListener("change", event => { state.onlyAction = event.target.checked; dirty.plan = true; renderVisible(); });
     $("download").addEventListener("click", downloadPlan);
     $("clear-filters").addEventListener("click", clearColumnFilters);
@@ -670,6 +707,9 @@ function createEngine(data) {
       tab.tabIndex = selected ? 0 : -1;
     });
     document.querySelectorAll("[role=tabpanel]").forEach(panel => { panel.hidden = panel.id !== "panel-" + name; });
+    // Fuera del mapa no se reproduce el día; los anillos se frenan solos y vuelven a latir al regresar.
+    if (name === "map") startPulse();
+    else pauseDay();
     renderVisible();
     // Un gráfico que estuvo oculto no se entera si cambió el ancho de la ventana, y Plotly.react
     // conserva el ancho anterior.
@@ -894,9 +934,26 @@ function createEngine(data) {
   // Radio en píxeles con que Plotly dibuja un punto de tamaño por área (marker.sizemode = "area").
   const bubbleRadius = (value, sizeref, sizemin) => Math.max(Math.sqrt(value / 2 / sizeref), sizemin);
 
+  // El mapa se dibuja de a uno: si se pide otro dibujo mientras Plotly sigue con el anterior (por ejemplo,
+  // mientras se reproduce el día), al terminar se hace uno solo, con el estado de ese momento.
+  let mapBusy = false, mapPending = false;
+
   function renderMap() {
+    if (!result) return;
     if (!mapMode) mapMode = chooseMapMode();
-    mapMode.then(drawMap);
+    mapMode.then(mode => {
+      if (mapBusy) {
+        mapPending = true;
+        return;
+      }
+      mapBusy = true;
+      drawMap(mode).finally(() => {
+        mapBusy = false;
+        if (!mapPending) return;
+        mapPending = false;
+        renderMap();
+      });
+    });
   }
 
   function drawMap(mode) {
@@ -910,24 +967,43 @@ function createEngine(data) {
       traces.push(place(LANES.lon, LANES.lat, {mode: "lines", name: "Ciclovías", line: {color: AQUA, width: 1},
                                                opacity: 0.6, hoverinfo: "skip"}));
     }
+    const day = state.mapView === "day";
+    const rings = day ? addDayTraces(traces, place, tiles) : addPlanTraces(traces, place, tiles);
+
+    // uirevision fijo: al cambiar un control se conserva el acercamiento que eligió quien lo mira.
+    const height = window.innerWidth < 700 ? 560 : 760;
+    const layout = Object.assign({}, data.layouts[tiles ? "tile_map" : "map"], {uirevision: "map", height});
+    if (tiles) {
+      const margin = layout.margin;
+      const zoom = fitZoom($("map-plot").clientWidth - margin.l - margin.r, height - margin.t - margin.b);
+      layout.map = Object.assign({}, layout.map, {zoom});
+    }
+    $("map-offline").hidden = tiles;
+    $("caption-plan").hidden = day;
+    $("caption-day").hidden = !day;
+    return draw("map-plot", traces, layout, MAP_CONFIG).then(plot => {
+      if (!mapZoomReady) { mapZoomReady = true; enableMapZoom(plot); }
+      // Plotly no actualiza un tooltip abierto al redibujar: al cambiar la hora mostraría la anterior.
+      if (day) Plotly.Fx.unhover(plot);
+      startPulse(rings, tiles);
+    });
+  }
+
+  // Vista del plan: cada estación con el color de su indicación y el tamaño de sus viajes del día. Devuelve
+  // los anillos: las estaciones que necesitan una visita durante el día.
+  function addPlanTraces(traces, place, tiles) {
     const located = result.plan.filter(row => known(row.lon) && known(row.lat));
     // El tamaño de los puntos se calcula con todas las estaciones, para que no cambie al filtrar.
     const largest = Math.max(...located.map(row => row.trips));
     const sizeref = 2 * largest / (15 * 15), sizemin = 3;
+    const radius = row => bubbleRadius(row.trips, sizeref, sizemin);
     const shown = state.statusFilter ? located.filter(row => row.status === FILTER_STATUS[state.statusFilter]) : located;
     // Las estaciones que no piden nada se dibujan primero, para que no tapen a las que hay que preparar.
     for (const status of [...STATUS_ORDER].reverse()) {
       const rows = shown.filter(row => row.status === status);
       if (!rows.length) continue;
       const lon = rows.map(row => row.lon), lat = rows.map(row => row.lat);
-      // El mapa de teselas no dibuja el borde de los puntos, así que va un punto blanco apenas más
-      // grande debajo de cada uno. Van en el mismo grupo para que la leyenda oculte los dos juntos.
-      if (tiles) {
-        traces.push(place(lon, lat, {
-          mode: "markers", legendgroup: status, showlegend: false, hoverinfo: "skip",
-          marker: {color: "white", size: rows.map(row => 2 * (bubbleRadius(row.trips, sizeref, sizemin) + 1))},
-        }));
-      }
+      if (tiles) traces.push(place(lon, lat, borderTrace(rows.map(radius), status)));
       traces.push(place(lon, lat, {
         mode: "markers", name: status, legendgroup: status,
         customdata: rows.map(row => [
@@ -942,17 +1018,309 @@ function createEngine(data) {
                                sizeref, sizemin, opacity: 0.92}, tiles ? {} : {line: {color: "white", width: 1}}),
       }));
     }
-    // uirevision fijo: al cambiar un control se conserva el acercamiento que eligió quien lo mira.
-    const height = window.innerWidth < 700 ? 560 : 760;
-    const layout = Object.assign({}, data.layouts[tiles ? "tile_map" : "map"], {uirevision: "map", height});
-    if (tiles) {
-      const margin = layout.margin;
-      const zoom = fitZoom($("map-plot").clientWidth - margin.l - margin.r, height - margin.t - margin.b);
-      layout.map = Object.assign({}, layout.map, {zoom});
+    const visits = shown.filter(row => row.status === S.visit);
+    return [{key: "visit", color: STATUS_COLORS[S.visit],
+             points: visits.map(row => ({lon: row.lon, lat: row.lat, radius: radius(row)}))}];
+  }
+
+  // El mapa de teselas no dibuja el borde de los puntos, así que va un punto blanco apenas más grande
+  // debajo de cada uno. Va en el mismo grupo de la leyenda que sus puntos, para que se oculten juntos.
+  function borderTrace(radii, group) {
+    return {mode: "markers", legendgroup: group, showlegend: false, hoverinfo: "skip",
+            marker: {color: "white", opacity: 1, size: radii.map(radius => 2 * (radius + 1))}};
+  }
+
+  // ---- Anillos que laten alrededor de las estaciones que piden atención
+  // Se dibujan en un lienzo propio, encima de las estaciones y debajo de la leyenda y los tooltips, que no
+  // recibe el mouse. No se animan como parte del gráfico porque Plotly da por terminado un dibujo del mapa
+  // de teselas recién cuando MapLibre lo da por cargado, y eso no pasa nunca si se cambia algo del mapa en
+  // cada cuadro: el mapa dejaría de actualizarse. Además, así laten también en el mapa de la imagen.
+  const PULSE_PERIOD = 1600;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let pulses = [], pulseTiles = false, pulseFrame = 0, pulseCanvas = null;
+
+  // Cómo pasar de longitud y latitud a píxeles dentro del gráfico, y qué recuadro ocupa el mapa. Plotly no
+  // lo publica: en el mapa de teselas se usa su mapa de MapLibre y en el de la imagen, sus ejes. Si eso
+  // cambiara en otra versión, los anillos dejan de verse pero el mapa sigue andando.
+  function mapGeometry(plot, container) {
+    const layout = plot._fullLayout;
+    if (pulseTiles) {
+      const map = layout.map && layout.map._subplot && layout.map._subplot.map;
+      if (!map) return null;
+      const box = map.getContainer().getBoundingClientRect(), origin = container.getBoundingClientRect();
+      const left = box.left - origin.left, top = box.top - origin.top;
+      return {
+        clip: [left, top, box.width, box.height],
+        project: (lon, lat) => {
+          const point = map.project([lon, lat]);
+          return [left + point.x, top + point.y];
+        },
+      };
     }
-    $("map-offline").hidden = tiles;
-    draw("map-plot", traces, layout, MAP_CONFIG).then(plot => {
-      if (!mapZoomReady) { mapZoomReady = true; enableMapZoom(plot); }
+    const x = layout.xaxis, y = layout.yaxis;
+    if (!x || !y || !x.l2p) return null;
+    return {clip: [x._offset, y._offset, x._length, y._length],
+            project: (lon, lat) => [x._offset + x.l2p(lon), y._offset + y.l2p(lat)]};
+  }
+
+  // phase va de 0 a 1: la onda nace pegada al punto, crece y se desvanece. Con phase null (para quien
+  // prefiere menos movimiento) queda solo el anillo fijo.
+  function paintPulse(phase) {
+    const plot = $("map-plot");
+    const container = plot.querySelector(".svg-container");
+    const geometry = container && mapGeometry(plot, container);
+    if (!geometry) return;
+    if (!pulseCanvas) {
+      pulseCanvas = document.createElement("canvas");
+      Object.assign(pulseCanvas.style, {position: "absolute", left: 0, top: 0, pointerEvents: "none"});
+    }
+    if (pulseCanvas.parentNode !== container) {
+      const anchor = container.querySelector(".gl-container");
+      container.insertBefore(pulseCanvas, anchor ? anchor.nextSibling : container.children[1] || null);
+    }
+    const ratio = window.devicePixelRatio || 1;
+    const width = container.clientWidth, height = container.clientHeight;
+    if (pulseCanvas.width !== Math.round(width * ratio) || pulseCanvas.height !== Math.round(height * ratio)) {
+      pulseCanvas.width = Math.round(width * ratio);
+      pulseCanvas.height = Math.round(height * ratio);
+      pulseCanvas.style.width = width + "px";
+      pulseCanvas.style.height = height + "px";
+    }
+    const context = pulseCanvas.getContext("2d");
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, width, height);
+    context.save();
+    context.beginPath();
+    context.rect(...geometry.clip);
+    context.clip();
+    const grow = phase === null ? 0 : 13 * (1 - (1 - phase) ** 2);
+    for (const ring of pulses) {
+      context.strokeStyle = ring.color;
+      for (const point of ring.points) {
+        const [x, y] = geometry.project(point.lon, point.lat);
+        // El anillo fijo, por fuera del borde blanco del punto.
+        context.globalAlpha = 1;
+        context.lineWidth = 2;
+        context.beginPath();
+        context.arc(x, y, point.radius + 3, 0, 2 * Math.PI);
+        context.stroke();
+        if (phase === null) continue;
+        // La onda.
+        context.globalAlpha = 0.8 * (1 - phase);
+        context.lineWidth = 2.5;
+        context.beginPath();
+        context.arc(x, y, point.radius + 3 + grow, 0, 2 * Math.PI);
+        context.stroke();
+      }
+    }
+    context.restore();
+  }
+
+  function clearPulse() {
+    if (pulseCanvas) pulseCanvas.getContext("2d").clearRect(0, 0, pulseCanvas.width, pulseCanvas.height);
+  }
+
+  // Sin argumentos vuelve a arrancar con los anillos que ya tenía (al volver a la pestaña del mapa). El
+  // lienzo se redibuja en cada cuadro aunque el anillo esté quieto, para seguir al mapa cuando se mueve.
+  function startPulse(list, tiles) {
+    if (list) {
+      pulses = list.filter(ring => ring.points.length);
+      pulseTiles = tiles;
+    }
+    if (pulseFrame) return;
+    const step = now => {
+      pulseFrame = 0;
+      if (state.tab !== "map" || !pulses.length) {
+        clearPulse();
+        return;
+      }
+      paintPulse(reducedMotion.matches ? null : (now % PULSE_PERIOD) / PULSE_PERIOD);
+      pulseFrame = requestAnimationFrame(step);
+    };
+    pulseFrame = requestAnimationFrame(step);
+  }
+
+  // ---- El día hora por hora
+  // Cada estación arranca con lo que indica el plan y nadie la repone, como en «Detalle de una estación».
+  // El color muestra qué tan llena está y el tamaño, cuántas bicicletas salen y llegan en esa hora. Entre
+  // una hora y la siguiente los valores se interpolan, para que el paso sea continuo.
+  const HOUR_MS = 1200;
+  const DAY_END = 24;
+  const DAY_COLORSCALE = [[0, ORANGE], [0.5, "#a7a49d"], [1, BLUE]];
+  let dayCache = null;
+  let playing = false, playFrame = 0;
+
+  // Bicicletas al comienzo de cada hora desde START_HOUR (y al final del día) y movimiento de cada hora.
+  function dayPaths() {
+    if (dayCache && dayCache.result === result) return dayCache;
+    const rows = result.plan.filter(row => known(row.lon) && known(row.lat)).map(row => {
+      const path = engine.stockPath(result.prediction, row.index, row.target_stock);
+      return {row, stock: [row.target_stock, ...path.stock],
+              moves: path.departures.map((value, position) => value + path.arrivals[position]),
+              departures: path.departures, arrivals: path.arrivals};
+    });
+    const busiest = Math.max(...rows.flatMap(item => item.moves));
+    dayCache = {result, rows, busiest};
+    return dayCache;
+  }
+
+  const lerp = (from, to, fraction) => from + (to - from) * fraction;
+
+  // Estado de una estación en el momento time (en horas, con decimales).
+  function stationAt(item, time) {
+    const hours = item.moves.length;
+    const elapsed = Math.min(Math.max(time - engine.START_HOUR, 0), hours);
+    const hour = Math.min(Math.floor(elapsed), hours - 1);
+    const stock = lerp(item.stock[hour], item.stock[hour + 1], elapsed - hour);
+    // El movimiento se interpola entre la mitad de una hora y la de la siguiente.
+    const middle = Math.min(Math.max(elapsed - 0.5, 0), hours - 1);
+    const before = Math.floor(middle), after = Math.min(before + 1, hours - 1);
+    const moves = lerp(item.moves[before], item.moves[after], middle - before);
+    return {hour, stock, moves};
+  }
+
+  function addDayTraces(traces, place, tiles) {
+    const {rows, busiest} = dayPaths();
+    const sizeref = 2 * busiest / (18 * 18), sizemin = 3;
+    const shown = state.statusFilter ? rows.filter(item => item.row.status === FILTER_STATUS[state.statusFilter]) : rows;
+    const points = shown.map(item => {
+      const {hour, stock, moves} = stationAt(item, state.mapTime);
+      const {row} = item;
+      const capacity = row.capacity;
+      // Como en el plan, cuenta como que se queda sin bicicletas o sin lugar al entrar en el margen de
+      // seguridad: con el margen, las estaciones a visitar casi nunca llegan a vaciarse o llenarse del todo.
+      const empty = known(capacity) && stock < state.margin, full = known(capacity) && stock > capacity - state.margin;
+      let text;
+      if (!known(capacity)) text = "Capacidad desconocida";
+      else if (stock < 0) text = "<b>Sin bicicletas</b>: faltarían " + formatInteger(-stock);
+      else if (stock > capacity) text = "<b>Sin lugar</b>: sobrarían " + formatInteger(stock - capacity) + " bicicletas";
+      else text = formatInteger(stock) + " de " + capacity + " bicicletas" +
+        (empty ? " (<b>se está quedando sin bicicletas</b>)" : full ? " (<b>se está quedando sin lugar</b>)" : "");
+      const clock = engine.START_HOUR + hour;
+      return {
+        row, empty, full, moves, radius: bubbleRadius(moves, sizeref, sizemin),
+        share: known(capacity) ? Math.min(Math.max(stock / capacity, 0), 1) : NaN,
+        customdata: [escapeHtml(row.name), text, clock, clock + 1, formatDecimal(item.departures[hour], 1),
+                     formatDecimal(item.arrivals[hour], 1)],
+      };
+    });
+    // Las estaciones con capacidad desconocida van aparte, en gris: no se sabe qué tan llenas están.
+    const groups = [
+      {name: "Sin capacidad conocida", rows: points.filter(point => !known(point.share))},
+      {name: "Estaciones", rows: points.filter(point => known(point.share))
+        // Las más vacías y las más llenas, arriba de las demás.
+        .sort((first, second) => Math.abs(first.share - 0.5) - Math.abs(second.share - 0.5))},
+    ];
+    for (const group of groups) {
+      if (!group.rows.length) continue;
+      const lon = group.rows.map(point => point.row.lon), lat = group.rows.map(point => point.row.lat);
+      const unknown = group.name !== "Estaciones";
+      if (tiles) traces.push(place(lon, lat, borderTrace(group.rows.map(point => point.radius), group.name)));
+      const marker = {size: group.rows.map(point => point.moves), sizemode: "area", sizeref, sizemin, opacity: 0.92};
+      if (unknown) marker.color = STATUS_COLORS[S.unknown];
+      else Object.assign(marker, {
+        color: group.rows.map(point => point.share), colorscale: DAY_COLORSCALE, cmin: 0, cmax: 1, showscale: true,
+        // La escala va dentro del mapa, arriba a la izquierda: afuera empujaría el mapa hacia abajo, y abajo
+        // la tapa la atribución del mapa en pantallas angostas.
+        colorbar: {orientation: "h", x: 0.01, xanchor: "left", y: 0.99, yanchor: "top", len: 230, lenmode: "pixels",
+                   thickness: 10, outlinewidth: 0, bgcolor: "rgba(255, 255, 255, 0.85)", xpad: 14, ypad: 8,
+                   // Las etiquetas de las puntas, un poco hacia adentro para que no salgan del recuadro.
+                   tickvals: [0.07, 0.5, 0.93], ticktext: ["Vacía", "A media", "Llena"], ticks: "", tickfont: {size: 13},
+                   title: {text: "Bicicletas en la estación", side: "top", font: {size: 13}}},
+      });
+      if (!tiles) marker.line = {color: "white", width: 1};
+      traces.push(place(lon, lat, {
+        mode: "markers", name: group.name, legendgroup: group.name, showlegend: unknown, marker,
+        customdata: group.rows.map(point => point.customdata),
+        hovertemplate: "<b>%{customdata[0]}</b><br>%{customdata[1]}<br>Entre las %{customdata[2]} y las " +
+                       "%{customdata[3]} h: %{customdata[4]} salidas y %{customdata[5]} llegadas<extra></extra>",
+      }));
+    }
+
+    const empty = points.filter(point => point.empty), full = points.filter(point => point.full);
+    renderDayStatus(empty.length, full.length);
+    const ring = (key, color, list) => ({key, color, points: list.map(point => ({
+      lon: point.row.lon, lat: point.row.lat, radius: point.radius}))});
+    return [ring("empty", ORANGE, empty), ring("full", BLUE, full)];
+  }
+
+  function formatTime(time) {
+    const minutes = Math.round(time * 60);
+    return Math.floor(minutes / 60) + ":" + String(minutes % 60).padStart(2, "0") + " h";
+  }
+
+  function renderDayStatus(empty, full) {
+    const stations = amount => amount + (amount === 1 ? " estación" : " estaciones");
+    let text;
+    const verb = amount => (amount === 1 ? " se está" : " se están") + " quedando sin ";
+    if (!empty && !full) text = "ninguna estación se está quedando sin bicicletas ni sin lugar.";
+    else if (!full) text = "si nadie las repone, " + stations(empty) + verb(empty) + "bicicletas.";
+    else if (!empty) text = "si nadie las repone, " + stations(full) + verb(full) + "lugar.";
+    else text = "si nadie las repone, " + stations(empty) + verb(empty) + "bicicletas y " + full + " sin lugar.";
+    $("map-status").textContent = "A las " + formatTime(state.mapTime) + ", " + text;
+  }
+
+  function setMapTime(time) {
+    state.mapTime = time;
+    $("map-time").value = time;
+    $("map-time-label").textContent = formatTime(time);
+  }
+
+  function setPlaying(value) {
+    playing = value;
+    $("map-play").setAttribute("aria-label", value ? "Pausar" : "Reproducir el día");
+    $("map-play-icon").hidden = value;
+    $("map-pause-icon").hidden = !value;
+  }
+
+  // Avanza según el tiempo que pasó y no por cuadro, así dura lo mismo aunque el mapa tarde en dibujarse.
+  function playDay() {
+    if (state.mapTime >= DAY_END) setMapTime(engine.START_HOUR);
+    setPlaying(true);
+    let last = performance.now();
+    const step = now => {
+      if (!playing) return;
+      const time = Math.min(state.mapTime + (now - last) / HOUR_MS, DAY_END);
+      last = now;
+      setMapTime(time);
+      renderMap();
+      if (time >= DAY_END) setPlaying(false);
+      else playFrame = requestAnimationFrame(step);
+    };
+    playFrame = requestAnimationFrame(step);
+  }
+
+  function pauseDay() {
+    cancelAnimationFrame(playFrame);
+    setPlaying(false);
+  }
+
+  function setMapView(view) {
+    state.mapView = view;
+    $("map-player").hidden = view !== "day";
+    $("map-status").hidden = view !== "day";
+    pauseDay();
+    if (view === "day") {
+      setMapTime(engine.START_HOUR);
+      // Arranca sola, salvo para quien prefiere menos movimiento.
+      if (!reducedMotion.matches) playDay();
+    }
+    renderMap();
+  }
+
+  function setupMapControls() {
+    const time = $("map-time");
+    time.min = engine.START_HOUR;
+    time.max = DAY_END;
+    setMapTime(engine.START_HOUR);
+    document.querySelectorAll("input[name=map-view]").forEach(input => {
+      input.addEventListener("change", () => setMapView(input.value));
+    });
+    $("map-play").addEventListener("click", () => (playing ? pauseDay() : playDay()));
+    time.addEventListener("input", () => {
+      pauseDay();
+      setMapTime(Number(time.value));
+      renderMap();
     });
   }
 
