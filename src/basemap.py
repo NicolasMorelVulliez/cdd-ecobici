@@ -31,6 +31,13 @@ _REMOVED_BUTTONS = ["autoScale2d", "zoom2d", "pan2d", "select2d", "lasso2d", "to
 
 ZOOM_SCRIPT = Path(__file__).resolve().parent / "map_zoom.js"
 
+# Teselas de OpenStreetMap para el mapa en línea de la aplicación HTML (tile_layout).
+TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+
+# Cuánto se aclaran las teselas: lo mismo que FADE en download_basemap.py, para que el mapa en línea y
+# la imagen guardada se vean iguales.
+_TILE_FADE = 0.45
+
 
 def zoom_script() -> str:
     """Devuelve el código JavaScript que define ``enableMapZoom(gd)``.
@@ -89,5 +96,38 @@ def layout(lon_range: tuple = LON_RANGE, lat_range: tuple = LAT_RANGE) -> dict:
         # Con un valor fijo, si una página vuelve a dibujar el mapa con Plotly.react (por ejemplo al
         # cambiar un control) se conserva el acercamiento que eligió quien lo mira. Streamlit, en
         # cambio, arma un gráfico nuevo y vuelve al encuadre inicial.
+        uirevision="map",
+    )
+
+
+def tile_layout(lon_range: tuple = LON_RANGE, lat_range: tuple = LAT_RANGE) -> dict:
+    """Devuelve el diseño de un mapa de Plotly con las teselas de OpenStreetMap.
+
+    A diferencia de ``layout``, es un mapa de verdad (las trazas van con ``type: "scattermap"``):
+    se ve nítido en cualquier acercamiento y se mueve con suavidad, pero necesita conexión y WebGL.
+    Las teselas se pasan a grises y se aclaran igual que la imagen guardada. Solo lo usa la aplicación
+    HTML, que vuelve a ``layout`` si no puede bajar las teselas.
+
+    El acercamiento inicial lo calcula la página según el tamaño del mapa; el de acá es solo un valor
+    de partida.
+
+    :param lon_range: longitudes mínima y máxima a encuadrar.
+    :param lat_range: latitudes mínima y máxima a encuadrar.
+    :returns: un diccionario para pasar a ``figure.update_layout``.
+    """
+    style = {
+        "version": 8,
+        "sources": {"osm": {"type": "raster", "tiles": [TILE_URL], "tileSize": 256, "maxzoom": 19,
+                            "attribution": ATTRIBUTION}},
+        "layers": [{"id": "osm", "type": "raster", "source": "osm", "paint": {
+            "raster-saturation": -1, "raster-brightness-min": _TILE_FADE, "raster-fade-duration": 200,
+        }}],
+    }
+    return dict(
+        map=dict(style=style, zoom=12, center=dict(lon=sum(lon_range) / 2, lat=sum(lat_range) / 2),
+                 # Para que no se pierda la Ciudad al alejar o arrastrar.
+                 bounds=dict(west=lon_range[0] - 0.3, east=lon_range[1] + 0.3,
+                             south=lat_range[0] - 0.25, north=lat_range[1] + 0.25)),
+        modebar=dict(remove=_REMOVED_BUTTONS, orientation="v", bgcolor="rgba(255, 255, 255, 0.85)"),
         uirevision="map",
     )

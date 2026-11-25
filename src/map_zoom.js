@@ -6,7 +6,8 @@
 // la página se desplaza como siempre y un cartel avisa cómo activarla. Los botones andan siempre.
 function enableMapZoom(gd) {
   // La barra de Plotly viene en inglés y la página no carga sus traducciones.
-  const TITLES = {"Zoom in": "Acercar", "Zoom out": "Alejar", "Reset axes": "Volver al encuadre inicial"};
+  const TITLES = {"Zoom in": "Acercar", "Zoom out": "Alejar", "Reset axes": "Volver al encuadre inicial",
+                  "Reset view": "Volver al encuadre inicial"};
   const translate = () => gd.querySelectorAll(".modebar-btn").forEach(button => {
     const title = TITLES[button.getAttribute("data-title")];
     if (title) button.setAttribute("data-title", title);
@@ -26,9 +27,10 @@ function enableMapZoom(gd) {
   let active = false;
   let timer;
   // En la fase de captura, antes de que el evento llegue a Plotly: sin activar, Plotly no se entera
-  // de la rueda y el navegador desplaza la página.
+  // de la rueda y el navegador desplaza la página. Vale para los ejes comunes y para los mapas de
+  // teselas (los de la aplicación HTML), que dibuja MapLibre.
   gd.addEventListener("wheel", event => {
-    if (active || !event.target.closest(".draglayer")) return;
+    if (active || !event.target.closest(".draglayer, .maplibregl-canvas-container")) return;
     event.stopPropagation();
     hint.style.opacity = 1;
     clearTimeout(timer);
@@ -48,10 +50,11 @@ function enableMapZoom(gd) {
 
   // Plotly pone la barra en la esquina del gráfico, que puede quedar lejos del mapa porque el mapa se
   // angosta para no deformarse, y encima del título. Se la pone junto a la esquina superior derecha del mapa.
+  // Un mapa de teselas ocupa todo el ancho, así que ahí se usa su recuadro y no el de los ejes.
   const place = () => {
     const container = gd.querySelector(".modebar-container");
     const bar = gd.querySelector(".modebar");
-    const map = gd.querySelector(".draglayer .nsewdrag");
+    const map = gd.querySelector(".draglayer .nsewdrag, .maplibregl-canvas");
     if (!container || !bar || !map) return;
     const figure = gd.getBoundingClientRect();
     const plot = map.getBoundingClientRect();

@@ -226,10 +226,12 @@ def lanes_payload() -> list[list[int]]:
 def layouts() -> dict:
     """Diseños de los gráficos, con el mismo estilo que el reporte general."""
     legend = dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0, font=dict(size=14))
+    map_common = dict(height=760, margin=dict(l=0, r=0, t=40, b=0), hovermode="closest",
+                      legend=dict(legend, title_text="", traceorder="reversed", itemsizing="constant"))
     return {
-        "map": styled(go.Figure(), height=760, margin=dict(l=0, r=0, t=40, b=0), hovermode="closest",
-                      legend=dict(legend, title_text="", traceorder="reversed", itemsizing="constant"),
-                      **basemap.layout())["layout"],
+        # El mapa con teselas de OpenStreetMap y, para cuando no hay conexión o WebGL, el de la imagen guardada.
+        "tile_map": styled(go.Figure(), **map_common, **basemap.tile_layout())["layout"],
+        "map": styled(go.Figure(), **map_common, **basemap.layout())["layout"],
         "station": styled(go.Figure(), height=480, barmode="relative", bargap=0.25, hovermode="x unified",
                           xaxis=dict(title="Hora", dtick=1), yaxis_title="Bicicletas", legend=legend)["layout"],
         "check": styled(go.Figure(), height=460, hovermode="x unified", xaxis=dict(title="Hora", dtick=2),

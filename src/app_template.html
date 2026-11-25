@@ -215,7 +215,9 @@
     <label class="check"><input type="checkbox" id="in-lanes" checked> Mostrar ciclovías</label>
     <div class="figure"><div class="plot" id="map-plot"></div></div>
     <p class="caption">El tamaño de cada punto es la cantidad de viajes previstos. Para acercar, usá los botones o hacé
-      clic en el mapa y girá la rueda; se mueve arrastrando y con doble clic vuelve al encuadre inicial. {{attribution}}.</p>
+      clic en el mapa y girá la rueda; se mueve arrastrando y con doble clic vuelve al encuadre inicial. {{attribution}}.
+      <span id="map-offline" hidden>No se pudo cargar el mapa en línea (hace falta conexión), así que se muestra una
+      imagen guardada, que pierde nitidez al acercar mucho.</span></p>
   </section>
 
   <section role="tabpanel" id="panel-plan" aria-labelledby="tab-plan" hidden>
@@ -263,7 +265,8 @@
 
   <footer>
     Generado el {{generated}} con <code>python src/build_app.py</code>. La predicción se calcula en el navegador con los
-    mismos modelos de gradient boosting de <code>src/train_demand.py</code>; no hace falta conexión. Viajes publicados hasta
+    mismos modelos de gradient boosting de <code>src/train_demand.py</code>; no hace falta conexión (sin ella, el mapa muestra
+    una imagen guardada en lugar del mapa en línea). Viajes publicados hasta
     el {{trips_end}}. {{attribution}}. También está la versión en Streamlit: <code>streamlit run src/app.py</code>.
   </footer>
 </main>
@@ -848,22 +851,85 @@ function createEngine(data) {
   }
 
   // ---- Mapa
+  // Con conexión y WebGL el mapa usa las teselas de OpenStreetMap, que se ven nítidas en cualquier
+  // acercamiento y se mueven con suavidad. Si no, vuelve a la imagen guardada en este archivo, para que
+  // la aplicación se siga viendo completa sin conexión.
+  let mapMode = null;
+
+  function hasWebgl() {
+    try {
+      const canvas = document.createElement("canvas");
+      return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Encuadre inicial: el mismo de la imagen guardada.
+  const MAP_RANGE = {lon: data.layouts.map.xaxis.range, lat: data.layouts.map.yaxis.range};
+  const mercatorY = lat => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
+
+  // Prueba bajar la tesela del centro de la Ciudad. Va con fetch, como las pide el mapa, y no con una
+  // imagen: así se sabe también que el servidor deja usarlas desde un archivo local.
+  function chooseMapMode() {
+    if (!hasWebgl()) return Promise.resolve("image");
+    const zoom = 12, scale = 2 ** zoom;
+    const lon = (MAP_RANGE.lon[0] + MAP_RANGE.lon[1]) / 2, lat = (MAP_RANGE.lat[0] + MAP_RANGE.lat[1]) / 2;
+    const x = Math.floor((lon + 180) / 360 * scale);
+    const y = Math.floor((1 - mercatorY(lat) / Math.PI) / 2 * scale);
+    const url = data.layouts.tile_map.map.style.sources.osm.tiles[0]
+      .replace("{z}", zoom).replace("{x}", x).replace("{y}", y);
+    return fetch(url, {signal: AbortSignal.timeout(5000)})
+      .then(response => response.ok ? "tiles" : "image", () => "image");
+  }
+
+  // Acercamiento que encuadra la Ciudad en el tamaño que tiene el mapa. En MapLibre el mundo entero
+  // mide 512 píxeles en el nivel 0 y el doble en cada nivel siguiente.
+  function fitZoom(width, height) {
+    const byWidth = Math.log2(width * 360 / (512 * (MAP_RANGE.lon[1] - MAP_RANGE.lon[0])));
+    const byHeight = Math.log2(height * 2 * Math.PI / (512 * (mercatorY(MAP_RANGE.lat[1]) - mercatorY(MAP_RANGE.lat[0]))));
+    return Math.min(byWidth, byHeight);
+  }
+
+  // Radio en píxeles con que Plotly dibuja un punto de tamaño por área (marker.sizemode = "area").
+  const bubbleRadius = (value, sizeref, sizemin) => Math.max(Math.sqrt(value / 2 / sizeref), sizemin);
+
   function renderMap() {
+    if (!mapMode) mapMode = chooseMapMode();
+    mapMode.then(drawMap);
+  }
+
+  function drawMap(mode) {
+    const tiles = mode === "tiles";
+    // Las mismas trazas sirven para los dos mapas: en el de teselas van en longitud y latitud, y en el de
+    // la imagen, en los ejes x e y.
+    const place = (lon, lat, trace) => Object.assign(
+      tiles ? {type: "scattermap", lon, lat} : {type: "scatter", x: lon, y: lat}, trace);
     const traces = [];
     if (state.lanes) {
-      traces.push({type: "scatter", x: LANES.lon, y: LANES.lat, mode: "lines", name: "Ciclovías",
-                   line: {color: AQUA, width: 1}, opacity: 0.6, hoverinfo: "skip"});
+      traces.push(place(LANES.lon, LANES.lat, {mode: "lines", name: "Ciclovías", line: {color: AQUA, width: 1},
+                                               opacity: 0.6, hoverinfo: "skip"}));
     }
     const located = result.plan.filter(row => known(row.lon) && known(row.lat));
     // El tamaño de los puntos se calcula con todas las estaciones, para que no cambie al filtrar.
     const largest = Math.max(...located.map(row => row.trips));
+    const sizeref = 2 * largest / (15 * 15), sizemin = 3;
     const shown = state.statusFilter ? located.filter(row => row.status === FILTER_STATUS[state.statusFilter]) : located;
     // Las estaciones que no piden nada se dibujan primero, para que no tapen a las que hay que preparar.
     for (const status of [...STATUS_ORDER].reverse()) {
       const rows = shown.filter(row => row.status === status);
       if (!rows.length) continue;
-      traces.push({
-        type: "scatter", mode: "markers", name: status, x: rows.map(row => row.lon), y: rows.map(row => row.lat),
+      const lon = rows.map(row => row.lon), lat = rows.map(row => row.lat);
+      // El mapa de teselas no dibuja el borde de los puntos, así que va un punto blanco apenas más
+      // grande debajo de cada uno. Van en el mismo grupo para que la leyenda oculte los dos juntos.
+      if (tiles) {
+        traces.push(place(lon, lat, {
+          mode: "markers", legendgroup: status, showlegend: false, hoverinfo: "skip",
+          marker: {color: "white", size: rows.map(row => 2 * (bubbleRadius(row.trips, sizeref, sizemin) + 1))},
+        }));
+      }
+      traces.push(place(lon, lat, {
+        mode: "markers", name: status, legendgroup: status,
         customdata: rows.map(row => [
           escapeHtml(row.name), known(row.target_stock) ? formatInteger(row.target_stock) + " bicicletas" : "—",
           known(row.capacity) ? row.capacity : "—", known(row.cluster_name) ? escapeHtml(row.cluster_name) : "Sin clasificar",
@@ -872,12 +938,19 @@ function createEngine(data) {
         hovertemplate: "<b>%{customdata[0]}</b><br>Dejar a las " + engine.START_HOUR + " h con: %{customdata[1]}" +
                        "<br>Capacidad: %{customdata[2]}<br>Tipo: %{customdata[3]}<br>Viajes previstos: %{customdata[4]}" +
                        "%{customdata[5]}<extra>" + status + "</extra>",
-        marker: {color: STATUS_COLORS[status], size: rows.map(row => row.trips), sizemode: "area",
-                 sizeref: 2 * largest / (15 * 15), sizemin: 3, opacity: 0.92, line: {color: "white", width: 1}},
-      });
+        marker: Object.assign({color: STATUS_COLORS[status], size: rows.map(row => row.trips), sizemode: "area",
+                               sizeref, sizemin, opacity: 0.92}, tiles ? {} : {line: {color: "white", width: 1}}),
+      }));
     }
     // uirevision fijo: al cambiar un control se conserva el acercamiento que eligió quien lo mira.
-    const layout = Object.assign({}, data.layouts.map, {uirevision: "map", height: window.innerWidth < 700 ? 560 : 760});
+    const height = window.innerWidth < 700 ? 560 : 760;
+    const layout = Object.assign({}, data.layouts[tiles ? "tile_map" : "map"], {uirevision: "map", height});
+    if (tiles) {
+      const margin = layout.margin;
+      const zoom = fitZoom($("map-plot").clientWidth - margin.l - margin.r, height - margin.t - margin.b);
+      layout.map = Object.assign({}, layout.map, {zoom});
+    }
+    $("map-offline").hidden = tiles;
     draw("map-plot", traces, layout, MAP_CONFIG).then(plot => {
       if (!mapZoomReady) { mapZoomReady = true; enableMapZoom(plot); }
     });
