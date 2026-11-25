@@ -99,9 +99,11 @@ paso falla, se detiene ahí.
 - **Reporte general:** abrir `reports/informe.html` en el navegador. Es un único archivo que funciona sin conexión.
   Ya está en el repositorio, así que se puede ver sin ejecutar nada; al correr el trabajo se vuelve a generar.
 - **Aplicación:** abrir `reports/app.html` con doble clic. Se elige el día y el clima previsto, y muestra con cuántas
-  bicicletas dejar cada estación, en un mapa y en una lista descargable. Es un único archivo que funciona sin Python,
-  sin servidor y sin conexión: la predicción la calcula el navegador con los mismos modelos de `models/`. Ya está en el
-  repositorio; se rehace con `python src/build_app.py` (o al correr todo).
+  bicicletas dejar cada estación, en un mapa y en una lista descargable. El mapa también reproduce el día hora por
+  hora, para ver cómo se vacía y se llena cada estación. Es un único archivo que funciona sin Python,
+  sin servidor y sin conexión: la predicción la calcula el navegador con los mismos modelos de `models/`. Con conexión,
+  el mapa es el de OpenStreetMap en línea; sin ella, muestra una imagen guardada. Ya está en el repositorio; se rehace
+  con `python src/build_app.py` (o al correr todo).
 - **Aplicación en Streamlit (alternativa):** la misma aplicación, servida desde Python.
 
   ```

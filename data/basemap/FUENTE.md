@@ -21,3 +21,5 @@
 - La imagen está en proyección Mercator y se dibuja sobre ejes de longitud y latitud. A la escala de la Ciudad la diferencia es de a lo sumo un píxel de la imagen.
 - Los servidores de teselas de OpenStreetMap se sostienen con donaciones y no admiten descargas masivas. El script baja las 132 teselas una sola vez y con pausas de medio segundo; no conviene correrlo seguido.
 - Se usa una imagen guardada y no un mapa en línea para que los mapas se vean sin conexión y sin depender de WebGL.
+- La aplicación HTML (`reports/app.html`) es la excepción: si hay conexión y WebGL usa las teselas de OpenStreetMap en
+  línea (pasadas a grises y aclaradas como esta imagen), y si no, vuelve a esta imagen.
