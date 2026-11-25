@@ -26,9 +26,22 @@
   .field { margin: 0 0 20px; }
   .field > label, .field > .label { display: block; font-size: 14px; color: var(--text-2); margin-bottom: 6px; font-weight: 550; }
   .field .hint { color: var(--text-3); font-size: 13px; margin: 6px 0 0; }
-  input[type=date], select, input[type=search] {
+  .date-field input[type=text], select, input[type=search] {
     width: 100%; font: inherit; padding: 8px 10px; border: 1px solid #c9c8c3; border-radius: 8px;
     background: #fff; color: var(--text); }
+  /* El campo de texto deja lugar a la derecha para el botón del calendario, que va encima. */
+  .date-field { position: relative; }
+  .date-field input[type=text] { padding-right: 44px; font-variant-numeric: tabular-nums; }
+  .date-field input[type=text][aria-invalid=true] { border-color: var(--orange); }
+  .date-field button { position: absolute; top: 1px; right: 1px; bottom: 1px; width: 40px; display: grid;
+                       place-items: center; border: 0; border-radius: 0 7px 7px 0; background: transparent;
+                       color: var(--text-2); cursor: pointer; }
+  .date-field button:hover { color: var(--blue); }
+  .date-field button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+  /* El selector del navegador solo aporta el calendario: no se ve, pero tiene que estar en la página para
+     poder abrirlo, y así el calendario aparece debajo del campo. */
+  .date-field input[type=date] { position: absolute; left: 0; bottom: 0; width: 100%; height: 1px; padding: 0;
+                                 border: 0; opacity: 0; pointer-events: none; }
   input[type=range] { width: 100%; accent-color: var(--blue); margin: 4px 0 0; }
   .range-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .range-head output { font-variant-numeric: tabular-nums; font-weight: 650; color: var(--text); white-space: nowrap; }
@@ -156,7 +169,15 @@
 
     <div class="field">
       <label for="in-date">Fecha</label>
-      <input type="date" id="in-date">
+      <div class="date-field">
+        <input type="text" id="in-date" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="10"
+               placeholder="DD/MM/AAAA" aria-describedby="date-hint">
+        <button type="button" id="in-date-pick" aria-label="Elegir en el calendario" title="Elegir en el calendario">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor"
+               stroke-width="1.4"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5 1.5v3M11 1.5v3"/></svg>
+        </button>
+        <input type="date" id="in-date-picker" tabindex="-1" aria-hidden="true">
+      </div>
       <p class="hint" id="date-hint"></p>
     </div>
 
@@ -632,9 +653,16 @@ function createEngine(data) {
 
   // ---- Panel lateral
   function setupControls() {
-    const date = $("in-date");
-    date.min = data.dates.min; date.max = data.dates.max; date.value = state.date;
-    $("date-hint").textContent = "Del " + formatDay(data.dates.min) + " al " + formatDay(data.dates.max) + ".";
+    const date = $("in-date"), picker = $("in-date-picker");
+    picker.min = data.dates.min; picker.max = data.dates.max;
+    date.value = formatDay(state.date);
+    const range = "del " + formatDay(data.dates.min) + " al " + formatDay(data.dates.max) + ".";
+    const setInvalid = invalid => {
+      date.setAttribute("aria-invalid", invalid);
+      $("date-hint").textContent = invalid ? "Escribila como DD/MM/AAAA, " + range
+                                           : range[0].toUpperCase() + range.slice(1);
+    };
+    setInvalid(false);
     RAIN_SCENARIOS.forEach(([label], index) => $("in-rain").add(new Option(label, index)));
     for (let hour = 0; hour < 24; hour++) {
       $("in-start").add(new Option(hour + " h", hour));
@@ -645,17 +673,59 @@ function createEngine(data) {
     state.holiday = state.date in data.holidays;
     $("in-holiday").checked = state.holiday;
 
-    date.addEventListener("change", () => {
-      let value = date.value || data.dates.default;
+    // La fecha se escribe como DD/MM/AAAA (también con guiones o puntos, o con un solo dígito en el día y el
+    // mes) y se guarda como AAAA-MM-DD. Devuelve null si no es una fecha que exista.
+    const parseTyped = text => {
+      const match = text.trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/) ||
+                    text.trim().match(/^(\d{2})(\d{2})(\d{4})$/);
+      if (!match) return null;
+      const [day, month, year] = match.slice(1).map(Number);
+      const time = new Date(Date.UTC(year, month - 1, day));
+      if (time.getUTCMonth() !== month - 1 || time.getUTCDate() !== day) return null;
+      return time.toISOString().slice(0, 10);
+    };
+    // Las fechas fuera del rango se llevan a la más cercana, como hacía el selector del navegador.
+    const commitDate = value => {
       if (value < data.dates.min) value = data.dates.min;
       if (value > data.dates.max) value = data.dates.max;
-      date.value = value;
+      date.value = formatDay(value);
+      setInvalid(false);
       if (value === state.date) return;
       state.date = value;
       // Como en Streamlit, al cambiar la fecha la casilla vuelve a lo que dice la lista de feriados.
       state.holiday = value in data.holidays;
       $("in-holiday").checked = state.holiday;
       schedule();
+    };
+    date.addEventListener("input", event => {
+      // Las barras se agregan solas al escribir el día y el mes; al borrar no se tocan.
+      if (event.inputType === "insertText" && /^\d{2}(\/\d{2})?$/.test(date.value)) date.value += "/";
+      date.removeAttribute("aria-invalid");
+      // Con la fecha completa el plan se actualiza sin esperar a salir del campo.
+      const value = date.value.length === 10 && parseTyped(date.value);
+      if (value && value >= data.dates.min && value <= data.dates.max) commitDate(value);
+    });
+    date.addEventListener("change", () => {
+      if (!date.value.trim()) return commitDate(state.date);
+      const value = parseTyped(date.value);
+      if (value) commitDate(value);
+      else setInvalid(true);
+    });
+    date.addEventListener("keydown", event => {
+      if (event.key === "Escape") commitDate(state.date);
+    });
+    $("in-date-pick").addEventListener("click", () => {
+      picker.value = state.date;
+      try {
+        picker.showPicker();
+      } catch {
+        // Navegadores sin showPicker: queda escribir la fecha.
+        date.focus();
+      }
+    });
+    picker.addEventListener("change", () => {
+      if (picker.value) commitDate(picker.value);
+      date.focus();
     });
     $("in-holiday").addEventListener("change", event => { state.holiday = event.target.checked; schedule(); });
     document.querySelectorAll("input[name=source]").forEach(input => input.addEventListener("change", event => {
