@@ -70,7 +70,7 @@
   .tile { position: relative; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
           box-shadow: var(--shadow-card); transition: transform .25s var(--ease-out), box-shadow .25s var(--ease-out); }
   .tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
-  .tile::before { content: ""; position: absolute; top: 0; left: 0; width: 48px; height: 4px; background: var(--kpi-color, var(--yellow)); }
+  .tile::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--kpi-color, var(--yellow)); }
   .tile .value { font: 800 36px/1.05 var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
   .tile .label { color: var(--ink); font-size: 14.5px; line-height: 1.4; margin-top: 10px; }
   .tile .note { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 6px; }
